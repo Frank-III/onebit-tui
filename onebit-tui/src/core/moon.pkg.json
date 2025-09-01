@@ -1,0 +1,9 @@
+{
+  "import": [
+    "moonbit-community/onebit-tui/ffi",
+    "moonbit-community/onebit-yoga/types",
+    "moonbit-community/onebit-yoga/wrapper"
+  ],
+  "exports": ["buffer", "types", "events", "renderable", "view", "view_impl", "renderer"],
+  "warn-list": "-0001-0002-0004-0006-0008-0009-0013-0015-0019-0022"
+}
