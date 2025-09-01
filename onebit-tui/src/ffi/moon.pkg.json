@@ -1,0 +1,12 @@
+{
+  "link": {
+    "native": {
+      "flags": [
+        "-Llib",
+        "-lopentui_ffi",
+        "-lopentui",
+        "-lterminal"
+      ]
+    }
+  }
+}

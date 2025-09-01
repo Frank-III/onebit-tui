@@ -1,0 +1,134 @@
+///|
+test "text creation" {
+  let text = Text::new("test", "Hello World")
+  inspect(text.text, content="Hello World")
+  inspect(text.align, content="left")
+  inspect(text.wrap, content="none")
+}
+
+///|
+test "text with options" {
+  let text = Text::new("test", "Hello")
+    .with_alignment(@core.TextAlign::Center)
+    .with_wrap(@core.TextWrap::Word)
+    .with_max_width(20)
+    .with_max_lines(3)
+    .with_line_height(2)
+  inspect(text.text, content="Hello")
+  inspect(text.align, content="center")
+  inspect(text.wrap, content="word")
+  inspect(text.max_width, content="20")
+  inspect(text.max_lines, content="3")
+  inspect(text.line_height, content="2")
+}
+
+///|
+test "text dimensions with newlines" {
+  let text = Text::new("test", "Hello\nWorld")
+  let (width, height) = text.calculate_text_bounds()
+  inspect(width, content="5") // "World" is longer
+  inspect(height, content="2") // 2 lines
+}
+
+///|
+test "text dimensions single line" {
+  let text = Text::new("test", "Hello")
+  let (width, height) = text.calculate_text_bounds()
+  inspect(width, content="5")
+  inspect(height, content="1")
+}
+
+///|
+test "text dimensions empty" {
+  let text = Text::new("test", "")
+  let (width, height) = text.calculate_text_bounds()
+  inspect(width, content="0")
+  inspect(height, content="1")
+}
+
+///|
+test "text get_lines no wrapping" {
+  let text = Text::new("test", "Hello World")
+  let lines = text.wrap_text(10)
+  inspect(lines.length(), content="1")
+  inspect(lines[0], content="Hello World")
+}
+
+///|
+test "text get_lines with wrapping" {
+  let text = Text::new("test", "Hello World from MoonBit")
+    .with_max_width(10)
+    .with_wrap(@core.TextWrap::Word)
+  let lines = text.wrap_text(10)
+  inspect(lines.length(), content="3")
+  inspect(lines[0], content="Hello")
+  inspect(lines[1], content="World from")
+  inspect(lines[2], content="MoonBit")
+}
+
+///|
+test "text get_lines long word" {
+  let text = Text::new("test", "Supercalifragilisticexpialidocious")
+    .with_max_width(10)
+    .with_wrap(@core.TextWrap::Word)
+  let lines = text.wrap_text(10)
+  inspect(lines.length() > 1, content="true")
+  inspect(lines[0].length(), content="10")
+}
+
+///|
+test "text get_lines with newlines" {
+  let text = Text::new("test", "Line 1\nLine 2\nLine 3")
+  let lines = text.wrap_text(10)
+  inspect(lines.length(), content="3")
+  inspect(lines[0], content="Line 1")
+  inspect(lines[1], content="Line 2")
+  inspect(lines[2], content="Line 3")
+}
+
+///|
+test "label creation" {
+  let label = Label::new("test", "Hello")
+  inspect(label.text.text, content="Hello")
+}
+
+///|
+test "label with text" {
+  let label = Label::new("test", "Hello")
+  let new_label = label.set_text("World")
+  inspect(new_label.text.text, content="World")
+}
+
+///|
+// test "text layout constraints" {
+//   let text = Text::new("test", "Hello World")
+//   let constraints = text.get_layout_constraints()
+//   inspect(constraints.min_width, content=0)
+//   inspect(constraints.max_width, content=11) // "Hello World" length
+//   inspect(constraints.min_height, content=1)
+//   inspect(constraints.max_height, content=1)
+// }
+
+// ///|
+// test "text layout constraints with max width" {
+//   let text = Text::new("test", "Hello World").with_max_width(5)
+//   let constraints = text.get_layout_constraints()
+//   inspect(constraints.max_width, content=5)
+// }
+
+// ///|
+// test "text layout constraints with newlines" {
+//   let text = Text::new("test", "Hello\nWorld")
+//   let constraints = text.get_layout_constraints()
+//   inspect(constraints.max_height, content=1) // Still 1 because layout handles newlines
+// }
+
+// ///|
+// test "text render" {
+//   let buffer = TerminalBuffer::new(20, 5)
+//   let text = Text::new("test", "Hello")
+//   text.render(buffer, 0, 0)
+
+//   // Just verify it doesn't crash - detailed rendering tests would be more complex
+//   inspect(true, content=true)
+// }

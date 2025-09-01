@@ -37,3 +37,23 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .DS_Store
 
 screenshot-*.png
+
+# MoonBit build outputs
+target/
+**/target/
+*.mi
+*.core
+
+# OneBit-TUI local build artifacts
+/onebit-tui/build/
+/onebit-tui/lib/*.o
+/onebit-tui/lib/*.a
+/onebit-tui/lib/*.dylib
+
+# OneBit-Yoga local build artifacts
+/onebit-yoga/src/ffi/target/
+/onebit-yoga/src/ffi/*.o
+/onebit-yoga/src/ffi/libyoga_wrap.a
+
+# Local tools/cache
+/.claude/
