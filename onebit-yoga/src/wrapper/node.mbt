@@ -179,21 +179,25 @@ pub fn Node::set_margin(self : Node, edge : @types.Edge, margin : @types.Value) 
   }
 }
 
-pub fn Node::set_margin_all(self : Node, margin : @types.Value) -> Unit {
-  self.set_margin(@types.Edge::All, margin)
-}
-
 /// Padding setters
 pub fn Node::set_padding(self : Node, edge : @types.Edge, padding : @types.Value) -> Unit {
   match padding.unit {
     @types.YogaUnit::Point => @ffi.yoga_node_set_padding(self.handle, edge, padding.value)
     @types.YogaUnit::Percent => @ffi.yoga_node_set_padding_percent(self.handle, edge, padding.value)
-    _ => ()
+    @types.YogaUnit::Auto => ()
+    @types.YogaUnit::Undefined => ()
   }
 }
 
 pub fn Node::set_padding_all(self : Node, padding : @types.Value) -> Unit {
-  self.set_padding(@types.Edge::All, padding)
+  self.set_padding(@types.Edge::Left, padding)
+  self.set_padding(@types.Edge::Top, padding)
+  self.set_padding(@types.Edge::Right, padding)
+  self.set_padding(@types.Edge::Bottom, padding)
+}
+
+pub fn Node::set_margin_all(self : Node, margin : @types.Value) -> Unit {
+  self.set_margin(@types.Edge::All, margin)
 }
 
 /// Position setters

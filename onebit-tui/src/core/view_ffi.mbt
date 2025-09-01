@@ -47,12 +47,51 @@ pub fn BoxView::render_ffi(self : BoxView, ctx : FFIRenderContext) -> Unit {
     self.draw_border_ffi(ctx)
   }
   
-  // Calculate content area
-  let content_bounds = self.content_bounds(ctx.bounds)
-  
-  // Render children
-  let child_ctx = FFIRenderContext::{ buffer: ctx.buffer, bounds: content_bounds }
-  self.layout_children_ffi(child_ctx)
+  // Compute inner area excluding border and title (Yoga will handle padding)
+  let border_width = if self.border == BorderStyle::None { 0 } else { 1 }
+  let title_height = match self.title {
+    Some(_) => 1
+    None => 0
+  }
+  let inner_x = x + border_width
+  let inner_y = y + border_width + title_height
+  let inner_w = width - border_width * 2
+  let inner_h = height - border_width * 2 - title_height
+
+  // If no children, nothing more to draw
+  if self.children.length() == 0 { return }
+
+  // Yoga layout for children inside the box with padding
+  let root = @wrapper.Node::new()
+  root.set_flex_direction(@types.FlexDirection::Column)
+  root.set_width_points(inner_w.to_double().to_float())
+  root.set_height_points(inner_h.to_double().to_float())
+  // Padding inside the box
+  root.set_padding_all(@types.Value::point(self.padding.to_double().to_float()))
+
+  for i = 0; i < self.children.length(); i = i + 1 {
+    let n = @wrapper.Node::new()
+    // Default: let content grow equally
+    n.set_flex_grow(1.0)
+    root.add_child(n)
+  }
+
+  root.calculate_layout(inner_w.to_double().to_float(), inner_h.to_double().to_float(), @types.Direction::LTR)
+
+  // Render each child in computed bounds (offset by inner origin)
+  for i = 0; i < self.children.length(); i = i + 1 {
+    match root.get_child(i) {
+      Some(child_node) => {
+        let left = child_node.layout_left().to_int()
+        let top = child_node.layout_top().to_int()
+        let w = child_node.layout_width().to_int()
+        let h = child_node.layout_height().to_int()
+        let cb = Rect::new(inner_x + left, inner_y + top, w, h)
+        self.children[i].render_ffi(FFIRenderContext::{ buffer: ctx.buffer, bounds: cb })
+      }
+      None => ()
+    }
+  }
 }
 
 fn BoxView::draw_border_ffi(self : BoxView, ctx : FFIRenderContext) -> Unit {
@@ -274,12 +313,27 @@ pub fn SpacerView::render_ffi(self : SpacerView, ctx : FFIRenderContext) -> Unit
 
 /// Padding rendering
 pub fn PaddingView::render_ffi(self : PaddingView, ctx : FFIRenderContext) -> Unit {
-  let padded_bounds = Rect::new(
-    ctx.bounds.x + self.amount,
-    ctx.bounds.y + self.amount,
-    ctx.bounds.width - self.amount * 2,
-    ctx.bounds.height - self.amount * 2
-  )
-  
-  self.child.render_ffi(FFIRenderContext::{ buffer: ctx.buffer, bounds: padded_bounds })
+  // Use Yoga to compute inner padded area for the single child
+  let root = @wrapper.Node::new()
+  root.set_width_points(ctx.bounds.width.to_double().to_float())
+  root.set_height_points(ctx.bounds.height.to_double().to_float())
+  root.set_padding_all(@types.Value::point(self.amount.to_double().to_float()))
+
+  let child_node = @wrapper.Node::new()
+  child_node.set_flex_grow(1.0)
+  root.add_child(child_node)
+
+  root.calculate_layout(ctx.bounds.width.to_double().to_float(), ctx.bounds.height.to_double().to_float(), @types.Direction::LTR)
+
+  match root.get_child(0) {
+    Some(n) => {
+      let left = n.layout_left().to_int()
+      let top = n.layout_top().to_int()
+      let w = n.layout_width().to_int()
+      let h = n.layout_height().to_int()
+      let pb = Rect::new(ctx.bounds.x + left, ctx.bounds.y + top, w, h)
+      self.child.render_ffi(FFIRenderContext::{ buffer: ctx.buffer, bounds: pb })
+    }
+    None => ()
+  }
 }
