@@ -1,0 +1,114 @@
+///|
+/// Interactive Demo with Animation
+/// Shows animated elements and handles user input
+
+pub fn interactive_demo() -> Unit {
+  println("\u001b[2J\u001b[H") // Clear screen and move cursor to top-left
+  println("╔══════════════════════════════════════════════════════╗")
+  println("║          OneBit TUI - Interactive Demo                ║")
+  println("║                                                        ║")
+  println("║  Press Ctrl+C to exit                                 ║")
+  println("╚══════════════════════════════════════════════════════╝")
+  println("")
+  
+  // Create animations
+  let mut frame = 0
+  let mut color_phase = 0.0
+  let frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+  let progress_chars = ["▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
+  
+  // Animation loop - runs for a fixed number of iterations
+  // In a real app, this would use FFI to check for keyboard input
+  for iteration = 0; iteration < 100; iteration = iteration + 1 {
+    // Build the entire frame as a string
+    let mut output = ""
+    
+    // Move cursor to animation area (line 8) and clear line
+    output = output + "\u001b[8;1H\u001b[K"
+    
+    // Animated spinner
+    let spinner = frames[frame % frames.length()]
+    output = output + "  Loading " + spinner + " "
+    
+    // Animated progress bar
+    let progress = (iteration * 40) / 100
+    output = output + "["
+    for i = 0; i < 40; i = i + 1 {
+      if i < progress {
+        output = output + "█"
+      } else if i == progress {
+        let sub_progress = ((iteration * 8) / 100) % 8
+        output = output + progress_chars[sub_progress]
+      } else {
+        output = output + " "
+      }
+    }
+    output = output + "] " + iteration.to_string() + "%"
+    
+    // Move to next line for color animation
+    output = output + "\n\u001b[K  Colors: "
+    
+    // Animated color gradient (simplified without sin)
+    for i = 0; i < 20; i = i + 1 {
+      let phase = ((color_phase * 10.0 + i.to_double() * 12.0).to_int()) % 256
+      let r = (phase + iteration * 2) % 256
+      let g = (phase + 85 + iteration) % 256
+      let b = (phase + 170) % 256
+      output = output + "\u001b[38;2;\{r};\{g};\{b}m█"
+    }
+    output = output + "\u001b[0m" // Reset color
+    
+    // Animated text
+    output = output + "\n\u001b[K  Status: "
+    let status_messages = [
+      "Initializing...",
+      "Loading components...", 
+      "Rendering UI...",
+      "Processing events...",
+      "Updating display..."
+    ]
+    output = output + status_messages[iteration % status_messages.length()]
+    
+    // Bouncing dot animation
+    output = output + "\n\u001b[K  "
+    let bounce_pos = if (iteration / 10) % 2 == 0 {
+      iteration % 10
+    } else {
+      9 - (iteration % 10)
+    }
+    for i = 0; i < 20; i = i + 1 {
+      if i == bounce_pos * 2 {
+        output = output + "●"
+      } else {
+        output = output + "·"
+      }
+    }
+    
+    // Print the entire frame at once
+    println(output)
+    
+    frame = frame + 1
+    color_phase = color_phase + 0.1
+    
+    // Sleep simulation - in real app would use proper timing
+    // This creates a delay by doing computation
+    let mut delay = 0
+    for j = 0; j < 5000000; j = j + 1 {
+      delay = delay + 1
+    }
+  }
+  
+  // Final message
+  println("\n")
+  println("╔══════════════════════════════════════════════════════╗")
+  println("║          Animation Demo Complete! ✓                   ║")
+  println("╚══════════════════════════════════════════════════════╝")
+  println("")
+  println("Note: In a real application, you would use FFI bindings")
+  println("for proper event handling and timing control.")
+}
+
+// Update main to use interactive demo
+pub fn interactive_main() -> Unit {
+  interactive_demo()
+}

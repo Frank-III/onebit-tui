@@ -1,0 +1,233 @@
+///| Interactive Demo with DrawBox and more features
+///| Based on the Go console example
+
+fn main {
+  println("=== OneBit-TUI Interactive Demo ===")
+  println("This demo showcases more advanced features")
+  
+  // Create renderer
+  println("Initializing renderer...")
+  match @ffi.Renderer::new(80, 30) {
+    None => {
+      println("Failed to initialize renderer")
+      println("Make sure you're running in a proper terminal")
+      return
+    }
+    Some(renderer) => {
+      println("✓ Renderer created successfully!")
+      
+      // Enable mouse support
+      renderer.enable_mouse(enable_movement=true)
+      println("✓ Mouse support enabled")
+      
+      // Set background color
+      renderer.set_background_color(0.07, 0.09, 0.14, 1.0) // Dark blue-gray
+      
+      // Get buffer
+      let buffer = renderer.get_next_buffer()
+      println("✓ Got buffer: \{buffer.width}x\{buffer.height}")
+      
+      // Clear buffer
+      buffer.clear(0.07, 0.09, 0.14, 1.0)
+      
+      // Draw title
+      buffer.draw_text(
+        "🎮 OneBit-TUI Interactive Demo",
+        2_U, 1_U,
+        fg_r=1.0, fg_g=0.84, fg_b=0.53, // Gold color
+        bold=true
+      )
+      
+      // Draw instructions
+      buffer.draw_text(
+        "Press 1-5 to trigger buttons • q to quit • Mouse support enabled",
+        2_U, 2_U,
+        fg_r=0.69, fg_g=0.77, fg_b=0.87 // Light blue-gray
+      )
+      
+      // Draw buttons using DrawBox
+      draw_buttons(buffer)
+      
+      // Draw information panel
+      draw_info_panel(buffer)
+      
+      // Draw status bar
+      draw_status_bar(buffer)
+      
+      // Render
+      renderer.render(force=true)
+      println("✓ Rendered successfully!")
+      
+      println("\nDemo is running. Press Ctrl+C to exit.")
+      println("In a real implementation, we'd have an event loop here.")
+      
+      // Clean up
+      renderer.disable_mouse()
+      renderer.destroy()
+    }
+  }
+}
+
+fn draw_buttons(buffer : @ffi.Buffer) -> Unit {
+  // Button configuration
+  let button_y = 8
+  let button_width = 14_U
+  let button_height = 5_U
+  let spacing = 16
+  
+  // Create box drawing characters
+  let border_chars = FixedArray::make(6, 0_U)
+  border_chars[0] = 0x250C_U // ┌
+  border_chars[1] = 0x2500_U // ─
+  border_chars[2] = 0x2510_U // ┐
+  border_chars[3] = 0x2502_U // │
+  border_chars[4] = 0x2514_U // └
+  border_chars[5] = 0x2518_U // ┘
+  
+  // Button 1: LOG (gray)
+  let log_border = make_color(0.63, 0.63, 0.67, 1.0)
+  let log_bg = make_color(0.2, 0.2, 0.22, 1.0)
+  buffer.draw_box(
+    2, button_y, button_width, button_height,
+    border_chars, pack_box_options(true, 2), // fill=true, align=center
+    log_border, log_bg,
+    title=" LOG "
+  )
+  
+  // Button 2: INFO (blue)
+  let info_border = make_color(0.39, 0.71, 0.78, 1.0)
+  let info_bg = make_color(0.15, 0.25, 0.35, 1.0)
+  buffer.draw_box(
+    2 + spacing, button_y, button_width, button_height,
+    border_chars, pack_box_options(true, 2),
+    info_border, info_bg,
+    title=" INFO "
+  )
+  
+  // Button 3: WARN (yellow)
+  let warn_border = make_color(0.86, 0.71, 0.39, 1.0)
+  let warn_bg = make_color(0.35, 0.25, 0.15, 1.0)
+  buffer.draw_box(
+    2 + spacing * 2, button_y, button_width, button_height,
+    border_chars, pack_box_options(true, 2),
+    warn_border, warn_bg,
+    title=" WARN "
+  )
+  
+  // Button 4: ERROR (red)
+  let error_border = make_color(0.78, 0.47, 0.47, 1.0)
+  let error_bg = make_color(0.35, 0.15, 0.15, 1.0)
+  buffer.draw_box(
+    2 + spacing * 3, button_y, button_width, button_height,
+    border_chars, pack_box_options(true, 2),
+    error_border, error_bg,
+    title=" ERROR "
+  )
+  
+  // Button 5: DEBUG (purple)
+  let debug_border = make_color(0.55, 0.55, 0.59, 1.0)
+  let debug_bg = make_color(0.2, 0.2, 0.25, 1.0)
+  buffer.draw_box(
+    2 + spacing * 4, button_y, button_width, button_height,
+    border_chars, pack_box_options(true, 2),
+    debug_border, debug_bg,
+    title=" DEBUG "
+  )
+  
+  // Add button numbers
+  buffer.draw_text("1", 8_U, 10_U, fg_r=0.8, fg_g=0.8, fg_b=0.8)
+  buffer.draw_text("2", (8 + spacing).reinterpret_as_uint(), 10_U, fg_r=0.8, fg_g=0.8, fg_b=0.8)
+  buffer.draw_text("3", (8 + spacing * 2).reinterpret_as_uint(), 10_U, fg_r=0.8, fg_g=0.8, fg_b=0.8)
+  buffer.draw_text("4", (8 + spacing * 3).reinterpret_as_uint(), 10_U, fg_r=0.8, fg_g=0.8, fg_b=0.8)
+  buffer.draw_text("5", (8 + spacing * 4).reinterpret_as_uint(), 10_U, fg_r=0.8, fg_g=0.8, fg_b=0.8)
+}
+
+fn draw_info_panel(buffer : @ffi.Buffer) -> Unit {
+  // Create double-line box characters for fancier look
+  let border_chars = FixedArray::make(6, 0_U)
+  border_chars[0] = 0x2554_U // ╔
+  border_chars[1] = 0x2550_U // ═
+  border_chars[2] = 0x2557_U // ╗
+  border_chars[3] = 0x2551_U // ║
+  border_chars[4] = 0x255A_U // ╚
+  border_chars[5] = 0x255D_U // ╝
+  
+  let panel_color = make_color(0.5, 0.7, 0.9, 1.0)
+  let panel_bg = make_color(0.05, 0.1, 0.15, 1.0)
+  
+  buffer.draw_box(
+    10, 16, 60_U, 8_U,
+    border_chars, pack_box_options(true, 2),
+    panel_color, panel_bg,
+    title=" Information Panel "
+  )
+  
+  // Add content
+  buffer.draw_text(
+    "Framework: OneBit-TUI",
+    12_U, 18_U,
+    fg_r=0.0, fg_g=1.0, fg_b=0.8
+  )
+  
+  buffer.draw_text(
+    "Language: MoonBit",
+    12_U, 19_U,
+    fg_r=0.0, fg_g=0.8, fg_b=1.0
+  )
+  
+  buffer.draw_text(
+    "Backend: OpenTUI (Zig)",
+    12_U, 20_U,
+    fg_r=0.8, fg_g=0.8, fg_b=1.0
+  )
+  
+  buffer.draw_text(
+    "Features: Reactive UI, FFI, Terminal Rendering",
+    12_U, 21_U,
+    fg_r=1.0, fg_g=1.0, fg_b=0.6
+  )
+}
+
+fn draw_status_bar(buffer : @ffi.Buffer) -> Unit {
+  // Draw a filled rectangle for status bar
+  buffer.fill_rect(0_U, 26_U, 80_U, 3_U, 0.1, 0.15, 0.2, 1.0)
+  
+  // Status text
+  buffer.draw_text(
+    "Ready",
+    2_U, 27_U,
+    fg_r=0.56, fg_g=0.93, fg_b=0.56, // Light green
+    bold=true
+  )
+  
+  buffer.draw_text(
+    "Click buttons or press keys to interact",
+    10_U, 27_U,
+    fg_r=0.8, fg_g=0.8, fg_b=0.8
+  )
+  
+  // Right-aligned info
+  buffer.draw_text(
+    "OneBit-TUI v0.1.0",
+    60_U, 27_U,
+    fg_r=0.6, fg_g=0.6, fg_b=0.7
+  )
+}
+
+// Helper function to create color array
+fn make_color(r : Double, g : Double, b : Double, a : Double) -> FixedArray[Double] {
+  let color = FixedArray::make(4, 0.0)
+  color[0] = r
+  color[1] = g
+  color[2] = b
+  color[3] = a
+  color
+}
+
+// Helper function to pack box options
+fn pack_box_options(fill : Bool, align : Int) -> UInt {
+  let mut options : UInt = 0
+  if fill { options = options.lor(1) }
+  options = options.lor(align.reinterpret_as_uint() << 8)
+  options
+}

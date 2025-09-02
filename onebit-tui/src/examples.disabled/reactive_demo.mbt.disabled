@@ -1,0 +1,218 @@
+///|
+/// Reactive Terminal Demo
+/// Shows event-driven terminal UI with reactive signals
+
+pub fn reactive_demo() -> Unit {
+  // Initialize terminal
+  let term = match @ffi.ReactiveTerminal::init() {
+    Some(t) => t
+    None => {
+      println("Failed to initialize terminal")
+      return
+    }
+  }
+  
+  // Create reactive state
+  let (counter, set_counter) = @reactive.create_signal(0)
+  let (message, set_message) = @reactive.create_signal("Press keys to interact!")
+  let (cursor_x, set_cursor_x) = @reactive.create_signal(40)
+  let (cursor_y, set_cursor_y) = @reactive.create_signal(12)
+  let (animation_frame, set_frame) = @reactive.create_signal(0)
+  
+  // Create render buffer
+  let buffer = @ffi.RenderBuffer::create(term.width, term.height)
+  
+  // Animation frames
+  let spinners = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+  let colors = [
+    @core.RGBA::red(),
+    @core.RGBA::green(),
+    @core.RGBA::blue(),
+    @core.RGBA::yellow(),
+    @core.RGBA::cyan(),
+    @core.RGBA::magenta()
+  ]
+  
+  // Render function
+  let render = fn() {
+    // Clear screen
+    for y = 0; y < term.height; y = y + 1 {
+      for x = 0; x < term.width; x = x + 1 {
+        buffer.write_char(x, y, ' ', @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+      }
+    }
+    
+    // Draw header
+    buffer.write_string(
+      2, 1,
+      "╔════════════════════════════════════════════════════════╗",
+      @core.RGBA::white(),
+      @core.RGBA::black(),
+      @core.TextStyle::None
+    )
+    buffer.write_string(
+      2, 2,
+      "║       OneBit TUI - Reactive Event-Driven Demo         ║",
+      @core.RGBA::cyan(),
+      @core.RGBA::black(),
+      @core.TextStyle::Bold
+    )
+    buffer.write_string(
+      2, 3,
+      "╚════════════════════════════════════════════════════════╝",
+      @core.RGBA::white(),
+      @core.RGBA::black(),
+      @core.TextStyle::None
+    )
+    
+    // Show instructions
+    buffer.write_string(5, 5, "Controls:", @core.RGBA::yellow(), @core.RGBA::black(), @core.TextStyle::Bold)
+    buffer.write_string(5, 6, "• Arrow Keys: Move cursor", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+    buffer.write_string(5, 7, "• Space: Increment counter", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+    buffer.write_string(5, 8, "• R: Reset counter", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+    buffer.write_string(5, 9, "• ESC or Ctrl+C: Quit", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+    
+    // Show reactive state
+    buffer.write_string(
+      5, 11,
+      "Counter: " + counter.get().to_string(),
+      colors[counter.get() % colors.length()],
+      @core.RGBA::black(),
+      @core.TextStyle::Bold
+    )
+    
+    // Show message
+    buffer.write_string(
+      5, 13,
+      message.get(),
+      @core.RGBA::green(),
+      @core.RGBA::black(),
+      @core.TextStyle::None
+    )
+    
+    // Draw animated spinner
+    let spinner = spinners[animation_frame.get() % spinners.length()]
+    buffer.write_string(
+      5, 15,
+      spinner + " Processing...",
+      colors[animation_frame.get() % colors.length()],
+      @core.RGBA::black(),
+      @core.TextStyle::None
+    )
+    
+    // Draw cursor
+    buffer.write_char(
+      cursor_x.get(),
+      cursor_y.get(),
+      '█',
+      @core.RGBA::yellow(),
+      @core.RGBA::black(),
+      @core.TextStyle::Blink
+    )
+    
+    // Draw footer
+    buffer.write_string(
+      2, term.height - 2,
+      "═══════════════════════════════════════════════════════════",
+      @core.RGBA::white(),
+      @core.RGBA::black(),
+      @core.TextStyle::None
+    )
+    
+    // Render to terminal
+    buffer.render(term)
+  }
+  
+  // Event handler
+  let handle_event = fn(event : @ffi.TerminalEvent) -> Bool {
+    match event {
+      @ffi.TerminalEvent::KeyPress(key, mods) => {
+        match key {
+          @ffi.Key::Escape => {
+            set_message("Goodbye!")
+            render()
+            return false // Quit
+          }
+          @ffi.Key::Char('c') => {
+            if mods.ctrl {
+              set_message("Ctrl+C pressed - Exiting...")
+              render()
+              return false // Quit
+            }
+            true
+          }
+          @ffi.Key::Char('r') | @ffi.Key::Char('R') => {
+            set_counter(0)
+            set_message("Counter reset!")
+            true
+          }
+          @ffi.Key::Space => {
+            set_counter(counter.get() + 1)
+            set_message("Space pressed! Counter: " + counter.get().to_string())
+            true
+          }
+          @ffi.Key::Up => {
+            let new_y = cursor_y.get() - 1
+            if new_y >= 0 {
+              set_cursor_y(new_y)
+              set_message("Moving up")
+            }
+            true
+          }
+          @ffi.Key::Down => {
+            let new_y = cursor_y.get() + 1
+            if new_y < term.height {
+              set_cursor_y(new_y)
+              set_message("Moving down")
+            }
+            true
+          }
+          @ffi.Key::Left => {
+            let new_x = cursor_x.get() - 1
+            if new_x >= 0 {
+              set_cursor_x(new_x)
+              set_message("Moving left")
+            }
+            true
+          }
+          @ffi.Key::Right => {
+            let new_x = cursor_x.get() + 1
+            if new_x < term.width {
+              set_cursor_x(new_x)
+              set_message("Moving right")
+            }
+            true
+          }
+          @ffi.Key::Char(c) => {
+            set_message("Key pressed: " + c.to_string())
+            true
+          }
+          _ => true
+        }
+      }
+      @ffi.TerminalEvent::Resize(w, h) => {
+        set_message("Terminal resized: \{w}x\{h}")
+        true
+      }
+      _ => true
+    }
+  }
+  
+  // Animation tick
+  let tick = fn() {
+    set_frame(animation_frame.get() + 1)
+    render()
+  }
+  
+  // Initial render
+  render()
+  
+  // Run event loop
+  term.run_loop(handle_event, tick)
+  
+  // Cleanup
+  buffer.free()
+  term.deinit()
+  
+  println("\nDemo ended. Thanks for trying OneBit TUI!")
+}

@@ -1,0 +1,27 @@
+# Build artifacts
+/target/
+/build/
+.mooncakes/
+
+# Yoga library build
+/yoga-install/
+/build/yoga/
+
+# MoonBit
+*.mi
+*.core
+.moonbitx/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*~
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.log

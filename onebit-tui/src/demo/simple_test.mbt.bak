@@ -1,0 +1,26 @@
+///| Simple test to verify FFI is working
+
+fn main {
+  println("=== OneBit-TUI FFI Test ===")
+  
+  // Test basic FFI functionality
+  println("Testing FFI layer...")
+  
+  // Try to create a renderer (will fail without TTY but proves FFI is linked)
+  match @ffi.Renderer::new(80, 24) {
+    None => {
+      println("✓ FFI is working (renderer creation failed as expected without TTY)")
+    }
+    Some(renderer) => {
+      println("✓ FFI is working and renderer created!")
+      renderer.destroy()
+    }
+  }
+  
+  println("\nTo run the full demo, you need:")
+  println("1. A real terminal (TTY)")
+  println("2. Set DYLD_LIBRARY_PATH=/Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib")
+  println("3. Run: ./target/native/release/build/demo/demo.exe")
+  
+  println("\nFFI integration test complete!")
+}

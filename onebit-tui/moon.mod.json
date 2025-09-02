@@ -1,0 +1,11 @@
+{
+  "name": "moonbit-community/onebit-tui",
+  "version": "0.1.0",
+  "deps": {
+    "moonbit-community/onebit-yoga": {
+      "path": "../onebit-yoga"
+    },
+    "moonbitlang/x": "0.4.32"
+  },
+  "source": "src"
+}

@@ -1,0 +1,72 @@
+///| OneBit-TUI Demo - Using proper FFI implementation
+
+fn main {
+  println("=== OneBit-TUI Demo ===")
+  
+  // Create FFI renderer directly
+  println("Attempting to create renderer...")
+  match @ffi.Renderer::new(80, 24) {
+    None => {
+      println("Failed to initialize renderer")
+      println("This might be due to:")
+      println("  - Terminal not in raw/TTY mode")
+      println("  - Missing TERM environment variable")
+      println("  - Library initialization issue")
+      return
+    }
+    Some(renderer) => {
+      println("Renderer initialized successfully!")
+      
+      // Set up the renderer
+      renderer.set_use_thread(true)
+      renderer.set_background_color(0.1, 0.1, 0.3, 1.0)
+      
+      // Get buffer for drawing
+      let buffer = renderer.get_next_buffer()
+      println("Got buffer: \{buffer.width}x\{buffer.height}")
+      
+      // Clear the buffer with dark blue background
+      buffer.clear(0.1, 0.1, 0.3, 1.0)
+      
+      // Draw a simple box - for now just draw text
+      // buffer.fill_rect(10, 5, 60, 15, 0.2, 0.2, 0.4, 1.0)
+      
+      // Draw title text
+      buffer.draw_text(
+        "OneBit-TUI Demo",
+        30_U, 6_U,
+        fg_r=1.0, fg_g=1.0, fg_b=0.0  // Yellow
+      )
+      
+      // Draw welcome text
+      buffer.draw_text(
+        "Welcome to OneBit-TUI!",
+        25_U, 8_U,
+        fg_r=0.0, fg_g=1.0, fg_b=1.0  // Cyan
+      )
+      
+      buffer.draw_text(
+        "A modern TUI framework for MoonBit",
+        20_U, 10_U,
+        fg_r=1.0, fg_g=1.0, fg_b=1.0  // White
+      )
+      
+      buffer.draw_text(
+        "Press Ctrl+C to exit",
+        28_U, 14_U,
+        fg_r=0.5, fg_g=0.5, fg_b=0.5  // Gray
+      )
+      
+      // Render the buffer
+      renderer.render(force=true)
+      println("✓ Rendered successfully!")
+      
+      // Simple event loop - wait for a moment then exit
+      // In a real app, we'd have proper event handling here
+      println("Display will remain visible. Press Ctrl+C to exit.")
+      
+      // Clean up
+      renderer.destroy()
+    }
+  }
+}

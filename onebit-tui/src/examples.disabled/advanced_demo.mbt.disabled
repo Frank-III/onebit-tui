@@ -1,0 +1,290 @@
+///|
+/// Advanced Demo showcasing all OneBit TUI features
+/// Demonstrates reactive state, animations, modals, lists, and event handling
+
+pub fn advanced_demo() -> Unit {
+  // Initialize terminal
+  let term = match @ffi.ReactiveTerminal::init() {
+    Some(t) => t
+    None => {
+      println("Failed to initialize terminal")
+      return
+    }
+  }
+  
+  // Create reactive state
+  let (selected_item, set_selected_item) = @reactive.create_signal("")
+  let (progress, set_progress) = @reactive.create_signal(0)
+  let (show_help, set_show_help) = @reactive.create_signal(false)
+  let (animation_running, set_animation_running) = @reactive.create_signal(false)
+  
+  // Create computed values
+  let progress_text = @reactive.create_computed(fn() {
+    "Progress: " + progress.get().to_string() + "%"
+  })
+  
+  // Create UI components
+  
+  // Header box
+  let header = @components.Box::new("header")
+  header.set_bounds(0, 0, term.width, 3)
+  header.background_color = @core.RGBA::rgb(0.1, 0.1, 0.3)
+  header.border_style = @core.BorderStyle::Double
+  header.title = Some("OneBit TUI Advanced Demo")
+  
+  // Menu list
+  let menu_items = [
+    @components.ListItem::{ id: "item1", text: "Start Animation", icon: Some("▶"), data: None },
+    @components.ListItem::{ id: "item2", text: "Show Modal", icon: Some("💬"), data: None },
+    @components.ListItem::{ id: "item3", text: "Increase Progress", icon: Some("📈"), data: None },
+    @components.ListItem::{ id: "item4", text: "Reset Progress", icon: Some("🔄"), data: None },
+    @components.ListItem::{ id: "item5", text: "Help", icon: Some("❓"), data: None },
+    @components.ListItem::{ id: "item6", text: "Exit", icon: Some("🚪"), data: None }
+  ]
+  
+  let menu_list = @components.List::builder("menu")
+    .position(2, 4)
+    .size(30, 15)
+    .items(menu_items)
+    .border(@core.BorderStyle::Rounded)
+    .selection_color(0.2, 0.4, 0.8)
+    .on_select(fn(item) {
+      set_selected_item(item.text)
+      handle_menu_selection(item, set_progress, set_show_help, set_animation_running)
+    })
+    .build()
+  
+  // Progress display
+  let progress_box = @components.Box::new("progress")
+  progress_box.set_bounds(35, 4, 40, 5)
+  progress_box.border_style = @core.BorderStyle::Single
+  progress_box.title = Some("Status")
+  
+  // Animation box
+  let animation_box = @components.Box::new("animation")
+  animation_box.set_bounds(35, 10, 40, 9)
+  animation_box.border_style = @core.BorderStyle::Dashed
+  animation_box.title = Some("Animation")
+  
+  // Help modal
+  let help_modal = @components.Modal::builder("help", "Help")
+    .add_line("Welcome to OneBit TUI Advanced Demo!")
+    .add_line("")
+    .add_line("Keyboard Shortcuts:")
+    .add_line("  ↑/↓ - Navigate menu")
+    .add_line("  Enter - Select item")
+    .add_line("  Tab - Switch focus")
+    .add_line("  Esc - Close modal / Exit")
+    .add_line("")
+    .add_line("Features demonstrated:")
+    .add_line("  • Reactive state management")
+    .add_line("  • Timeline animations")
+    .add_line("  • Modal dialogs")
+    .add_line("  • List navigation")
+    .add_line("  • Progress tracking")
+    .button("OK", fn() { set_show_help(false) }, is_default=true)
+    .size(50, 18)
+    .build()
+  
+  // Create timeline for animations
+  let bounce_timeline = @ui.Timeline::new()
+    .bounce("animation", 5, 1000)
+    .loop(true)
+  
+  // Create spring animation for progress
+  let progress_spring = @ui.SpringAnimation::new(0.0, 0.0)
+  
+  // Setup event loop
+  let event_loop = @ui.EventLoop::builder(term)
+    .frame_rate(60)
+    .on_update(fn(delta) {
+      // Update progress spring animation
+      if progress_spring.position != progress_spring.target {
+        let new_pos = progress_spring.update(delta.to_double() / 1000.0)
+        set_progress(new_pos.to_int())
+      }
+      
+      // Update other animations
+      if animation_running.get() {
+        bounce_timeline.update(delta)
+      }
+    })
+    .on_render(fn(buffer) {
+      // Render header content
+      buffer.write_string(
+        2, 1,
+        "Advanced Terminal UI Demo - Press F1 for help",
+        @core.RGBA::white(),
+        @core.RGBA::rgb(0.1, 0.1, 0.3),
+        @core.TextStyle::Bold
+      )
+      
+      // Render progress
+      let prog_val = progress.get()
+      let prog_width = 30
+      let filled = (prog_val.to_double() / 100.0 * prog_width.to_double()).to_int()
+      
+      buffer.write_string(
+        37, 6,
+        progress_text.get(),
+        @core.RGBA::green(),
+        @core.RGBA::black(),
+        @core.TextStyle::None
+      )
+      
+      // Progress bar
+      for i = 0; i < prog_width; i = i + 1 {
+        let char = if i < filled { '█' } else { '░' }
+        let color = if i < filled {
+          @core.RGBA::lerp(@core.RGBA::red(), @core.RGBA::green(), prog_val.to_double() / 100.0)
+        } else {
+          @core.RGBA::gray()
+        }
+        buffer.write_char(37 + i, 7, char, color, @core.RGBA::black(), @core.TextStyle::None)
+      }
+      
+      // Render animation content
+      if animation_running.get() {
+        let anim_text = "🚀 Bouncing!"
+        let y_offset = bounce_timeline.current_time % 1000
+        let bounce_y = if y_offset < 500 {
+          (y_offset.to_double() / 500.0 * 3.0).to_int()
+        } else {
+          3 - ((y_offset - 500).to_double() / 500.0 * 3.0).to_int()
+        }
+        
+        buffer.write_string(
+          45, 13 + bounce_y,
+          anim_text,
+          @core.RGBA::yellow(),
+          @core.RGBA::black(),
+          @core.TextStyle::Bold
+        )
+      } else {
+        buffer.write_string(
+          42, 14,
+          "Press 'Start Animation'",
+          @core.RGBA::gray(),
+          @core.RGBA::black(),
+          @core.TextStyle::Italic
+        )
+      }
+      
+      // Status bar
+      buffer.fill_rect(0, term.height - 1, term.width, 1, ' ', @core.RGBA::white(), @core.RGBA::rgb(0.2, 0.2, 0.2), @core.TextStyle::None)
+      buffer.write_string(
+        2, term.height - 1,
+        "Selected: " + selected_item.get(),
+        @core.RGBA::yellow(),
+        @core.RGBA::rgb(0.2, 0.2, 0.2),
+        @core.TextStyle::None
+      )
+      
+      let time_text = "FPS: 60"
+      buffer.write_string(
+        term.width - time_text.length() - 2, term.height - 1,
+        time_text,
+        @core.RGBA::green(),
+        @core.RGBA::rgb(0.2, 0.2, 0.2),
+        @core.TextStyle::None
+      )
+    })
+    .on_event(fn(event) {
+      match event {
+        @ffi.TerminalEvent::KeyPress(key, mods) => {
+          match key {
+            @ffi.Key::Escape => {
+              if show_help.get() {
+                set_show_help(false)
+                true
+              } else {
+                false  // Exit
+              }
+            }
+            @ffi.Key::F1 => {
+              set_show_help(true)
+              true
+            }
+            @ffi.Key::Up => {
+              menu_list.select_previous()
+              true
+            }
+            @ffi.Key::Down => {
+              menu_list.select_next()
+              true
+            }
+            @ffi.Key::Enter => {
+              menu_list.confirm_selection()
+              true
+            }
+            @ffi.Key::Char('q') => {
+              false  // Exit
+            }
+            _ => true
+          }
+        }
+        _ => true
+      }
+    })
+    .build()
+  
+  // Add components to render list (Note: This would need proper Component trait implementation)
+  // event_loop.add_component(header)
+  // event_loop.add_component(menu_list)
+  // event_loop.add_component(progress_box)
+  // event_loop.add_component(animation_box)
+  
+  // Setup reactive effects
+  @reactive.create_effect(fn() {
+    if show_help.get() {
+      event_loop.show_modal(help_modal)
+    } else {
+      event_loop.hide_modal()
+    }
+  })
+  
+  @reactive.create_effect(fn() {
+    if animation_running.get() {
+      event_loop.add_animation(bounce_timeline)
+    }
+  })
+  
+  // Run the event loop
+  event_loop.run()
+  
+  // Cleanup
+  term.deinit()
+  println("\nThanks for trying OneBit TUI Advanced Demo!")
+}
+
+fn handle_menu_selection(
+  item : @components.ListItem,
+  set_progress : (Int) -> Unit,
+  set_show_help : (Bool) -> Unit,
+  set_animation_running : (Bool) -> Unit
+) -> Unit {
+  match item.text {
+    "Start Animation" => set_animation_running(true)
+    "Show Modal" => {
+      let modal = @components.confirm(
+        "Confirmation",
+        "Are you sure you want to continue?",
+        fn() { println("User confirmed!") },
+        fn() { println("User cancelled!") }
+      )
+      // Would need to show modal through event loop
+    }
+    "Increase Progress" => {
+      let current = @reactive.create_signal(0).get()  // Would need proper access
+      if current < 100 {
+        set_progress(current + 10)
+      }
+    }
+    "Reset Progress" => set_progress(0)
+    "Help" => set_show_help(true)
+    "Exit" => {
+      // Would need to stop event loop
+    }
+    _ => ()
+  }
+}

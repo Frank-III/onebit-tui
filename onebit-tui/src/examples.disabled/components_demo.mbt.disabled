@@ -1,0 +1,219 @@
+///|
+/// Components Demo
+/// Demonstrates TextInput and Table components with interactive features
+
+// Sample data structure for table
+pub struct Person {
+  id : Int
+  name : String
+  email : String
+  age : Int
+  city : String
+}
+
+pub fn components_demo() -> Unit {
+  // Create sample data
+  let people = [
+    Person::{ id: 1, name: "Alice Johnson", email: "alice@example.com", age: 28, city: "New York" },
+    Person::{ id: 2, name: "Bob Smith", email: "bob@example.com", age: 35, city: "Los Angeles" },
+    Person::{ id: 3, name: "Charlie Brown", email: "charlie@example.com", age: 42, city: "Chicago" },
+    Person::{ id: 4, name: "Diana Prince", email: "diana@example.com", age: 31, city: "Miami" },
+    Person::{ id: 5, name: "Eve Wilson", email: "eve@example.com", age: 26, city: "Seattle" },
+    Person::{ id: 6, name: "Frank Miller", email: "frank@example.com", age: 39, city: "Boston" },
+    Person::{ id: 7, name: "Grace Lee", email: "grace@example.com", age: 33, city: "Austin" },
+    Person::{ id: 8, name: "Henry Davis", email: "henry@example.com", age: 45, city: "Denver" },
+    Person::{ id: 9, name: "Iris Chen", email: "iris@example.com", age: 29, city: "Portland" },
+    Person::{ id: 10, name: "Jack Thompson", email: "jack@example.com", age: 37, city: "Phoenix" },
+    Person::{ id: 11, name: "Kate Anderson", email: "kate@example.com", age: 32, city: "San Diego" },
+    Person::{ id: 12, name: "Liam O'Brien", email: "liam@example.com", age: 41, city: "Dallas" }
+  ]
+  
+  // Create a standard terminal buffer for demo
+  let buffer = @core.TerminalBuffer::new(80, 30)
+  
+  // Header
+  let header_box = @components.Box::new("header")
+  header_box.set_bounds(0, 0, 80, 3)
+  header_box.background_color = @core.RGBA::rgb(0.1, 0.1, 0.3)
+  header_box.border_style = @core.BorderStyle::Double
+  header_box.title = Some("OneBit TUI - Components Demo")
+  
+  // Search input
+  let search_input = @components.TextInput::builder("search")
+    .position(2, 4)
+    .width(30)
+    .placeholder("Search by name or email...")
+    .on_change(fn(value) {
+      println("Search: " + value)
+    })
+    .build()
+  
+  // Filter input
+  let filter_input = @components.TextInput::builder("filter")
+    .position(35, 4)
+    .width(20)
+    .placeholder("Filter by city...")
+    .build()
+  
+  // Login form inputs
+  let username_input = @components.TextInput::builder("username")
+    .position(60, 4)
+    .width(18)
+    .placeholder("Username")
+    .max_length(20)
+    .build()
+  
+  let password_input = @components.TextInput::builder("password")
+    .position(60, 7)
+    .width(18)
+    .placeholder("Password")
+    .password()
+    .on_submit(fn(value) {
+      println("Login attempt with password length: " + value.length().to_string())
+    })
+    .build()
+  
+  // People table
+  let people_table = @components.Table::builder("people")
+    .position(2, 8)
+    .size(56, 20)
+    .column("id", "ID", 4, fn(p : Person) { p.id.to_string() }, align=@core.TextAlign::Right)
+    .column("name", "Name", 15, fn(p : Person) { p.name })
+    .column("email", "Email", 20, fn(p : Person) { p.email })
+    .column("age", "Age", 5, fn(p : Person) { p.age.to_string() }, align=@core.TextAlign::Right)
+    .column("city", "City", 10, fn(p : Person) { p.city })
+    .show_row_numbers()
+    .on_select(fn(person) {
+      println("Selected: " + person.name)
+    })
+    .build()
+  
+  // Set table data
+  people_table.set_data(people)
+  
+  // Info box
+  let info_box = @components.Box::new("info")
+  info_box.set_bounds(60, 10, 18, 10)
+  info_box.border_style = @core.BorderStyle::Rounded
+  info_box.title = Some("Info")
+  
+  // Render everything
+  buffer.clear()
+  
+  // Render components
+  header_box.render(buffer)
+  
+  // Search label
+  buffer.write_string(2, 3, "Search:", @core.RGBA::gray(), @core.RGBA::black(), @core.TextStyle::None)
+  search_input.render(buffer)
+  
+  // Filter label
+  buffer.write_string(35, 3, "Filter:", @core.RGBA::gray(), @core.RGBA::black(), @core.TextStyle::None)
+  filter_input.render(buffer)
+  
+  // Login form
+  buffer.write_string(60, 3, "Login Form", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::Bold)
+  username_input.render(buffer)
+  password_input.render(buffer)
+  
+  // Table
+  people_table.render(buffer)
+  
+  // Info box content
+  info_box.render(buffer)
+  buffer.write_string(62, 12, "Controls:", @core.RGBA::yellow(), @core.RGBA::black(), @core.TextStyle::Bold)
+  buffer.write_string(62, 13, "↑↓ Navigate", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(62, 14, "←→ Columns", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(62, 15, "Enter Select", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(62, 16, "Tab Next", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(62, 17, "S Sort", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(62, 18, "/ Filter", @core.RGBA::white(), @core.RGBA::black(), @core.TextStyle::None)
+  
+  // Footer
+  buffer.fill_rect(0, 28, 80, 2, ' ', @core.RGBA::white(), @core.RGBA::rgb(0.2, 0.2, 0.2), @core.TextStyle::None)
+  buffer.write_string(2, 29, "ESC: Exit | TAB: Next Field | F1: Help", @core.RGBA::yellow(), @core.RGBA::rgb(0.2, 0.2, 0.2), @core.TextStyle::None)
+  
+  // Show current state
+  let selected_text = match people_table.get_selected_item() {
+    Some(person) => "Selected: " + person.name
+    None => "No selection"
+  }
+  buffer.write_string(45, 29, selected_text, @core.RGBA::green(), @core.RGBA::rgb(0.2, 0.2, 0.2), @core.TextStyle::None)
+  
+  // Output
+  println(buffer.to_ansi())
+  
+  // Demo interaction simulation
+  println("\n=== Demo Interactions ===")
+  
+  // Simulate typing in search
+  println("\n1. Typing in search input:")
+  search_input.insert_char('A')
+  search_input.insert_char('l')
+  search_input.insert_char('i')
+  println("   Search value: " + search_input.value)
+  
+  // Simulate table navigation
+  println("\n2. Table navigation:")
+  people_table.select_next_row()
+  people_table.select_next_row()
+  println("   Selected row: " + people_table.selected_row.to_string())
+  
+  // Simulate sorting
+  println("\n3. Sorting by age:")
+  people_table.sort_by_column(3) // Age column
+  match people_table.get_selected_item() {
+    Some(person) => println("   After sort, selected: " + person.name + " (age: " + person.age.to_string() + ")")
+    None => ()
+  }
+  
+  // Simulate filtering
+  println("\n4. Filtering by city 'Seattle':")
+  people_table.set_filter("Seattle")
+  println("   Filtered results: " + people_table.display_data.length().to_string() + " rows")
+  
+  // Simulate password input
+  println("\n5. Password input:")
+  password_input.insert_char('s')
+  password_input.insert_char('e')
+  password_input.insert_char('c')
+  password_input.insert_char('r')
+  password_input.insert_char('e')
+  password_input.insert_char('t')
+  println("   Password length: " + password_input.value.length().to_string())
+  println("   Password masked: " + password_input.password_char.to_string().repeat(password_input.value.length()))
+  
+  // TextInput features
+  println("\n6. TextInput editing features:")
+  let demo_input = @components.TextInput::new("demo")
+  demo_input.set_value("Hello World")
+  println("   Initial: " + demo_input.value)
+  
+  demo_input.move_cursor_word_left()
+  demo_input.delete_char_before()
+  println("   After delete word: " + demo_input.value)
+  
+  demo_input.select_all()
+  demo_input.delete_selection()
+  demo_input.insert_char('N')
+  demo_input.insert_char('e')
+  demo_input.insert_char('w')
+  println("   After select all and replace: " + demo_input.value)
+  
+  demo_input.undo()
+  println("   After undo: " + demo_input.value)
+  
+  demo_input.redo()
+  println("   After redo: " + demo_input.value)
+  
+  println("\n=== Demo Complete ===")
+}
+
+// Helper to repeat a string
+fn String::repeat(self : String, times : Int) -> String {
+  let mut result = ""
+  for i = 0; i < times; i = i + 1 {
+    result = result + self
+  }
+  result
+}

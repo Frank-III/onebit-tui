@@ -1,0 +1,79 @@
+///|
+/// Reactive Counter Example
+/// Shows how to build a reactive UI with OneBit TUI
+
+fn main {
+  println("⚡ Reactive Counter Demo\n")
+  
+  // Create reactive state
+  let counter = @reactive.signal(0)
+  let is_even = @reactive.computed(fn() { counter.get() % 2 == 0 })
+  let display = @reactive.computed(fn() {
+    let count = counter.get()
+    let parity = if is_even.get() { "even" } else { "odd" }
+    "Count: " + count.to_string() + " (" + parity + ")"
+  })
+  
+  // Create UI components
+  let mut counter_box = @components.Box::new(
+    x=0, y=0,
+    width=30, height=8,
+    border=@components.Border::new(
+      style=@components.BorderStyle::Single,
+      color=@core.Color::Blue
+    ),
+    title="Counter"
+  )
+  
+  // Simulate interactive session
+  let updates = [
+    ("Initial state", 0),
+    ("Increment", 1),
+    ("Increment", 2),
+    ("Increment", 3),
+    ("Add 5", 8),
+    ("Add 10", 18),
+    ("Reset", 0)
+  ]
+  
+  for i = 0; i < updates.length(); i = i + 1 {
+    let (action, value) = updates[i]
+    counter.set(value)
+    
+    // Create buffer and render
+    let buf = @core.Buffer::new(32, 10)
+    counter_box.render(buf, 0, 0)
+    
+    // Add dynamic content
+    buf.write_string(2, 2, display.get())
+    buf.write_string(2, 4, "Action: " + action)
+    
+    // Add visual indicator
+    let indicator = if is_even.get() { "🟢" } else { "🔴" }
+    buf.write_string(2, 6, "Status: " + indicator)
+    
+    // Print the frame
+    println("\n" + action + ":")
+    print_buffer_frame(buf, 8)
+  }
+  
+  // Show reactive graph
+  println("\n📊 Reactive Dependencies:")
+  println("├─ counter (Signal)")
+  println("│  ├─ is_even (Computed)")
+  println("│  └─ display (Computed)")
+  println("└─ UI automatically updates when counter changes!")
+}
+
+fn print_buffer_frame(buf : @core.Buffer, height : Int) {
+  for y = 0; y < height; y = y + 1 {
+    let mut line = ""
+    for x = 0; x < buf.width; x = x + 1 {
+      match buf.get(x, y) {
+        Some(cell) => line = line + cell.char
+        None => line = line + " "
+      }
+    }
+    println(line)
+  }
+}

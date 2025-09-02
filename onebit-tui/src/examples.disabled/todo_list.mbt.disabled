@@ -1,0 +1,147 @@
+///|
+/// TODO List Example
+/// A complete example showing how to build an interactive TODO list
+
+fn main {
+  println("📝 TODO List Demo\n")
+  
+  // Reactive state for TODO items
+  let todos = @reactive.signal([
+    ("Learn MoonBit", false),
+    ("Build OneBit TUI", true),
+    ("Create awesome apps", false)
+  ])
+  
+  let completed_count = @reactive.computed(fn() {
+    let items = todos.get()
+    let mut count = 0
+    for i = 0; i < items.length(); i = i + 1 {
+      let (_, done) = items[i]
+      if done { count = count + 1 }
+    }
+    count
+  })
+  
+  let progress = @reactive.computed(fn() {
+    let total = todos.get().length()
+    let done = completed_count.get()
+    if total == 0 { 0 } else { (done * 100) / total }
+  })
+  
+  // Create UI layout
+  let container_buf = @core.Buffer::new(50, 20)
+  
+  // Title
+  let title_box = @components.Box::new(
+    x=0, y=0, width=48, height=3,
+    border=@components.Border::new(
+      style=@components.BorderStyle::Double,
+      color=@core.Color::Cyan
+    ),
+    title="TODO List Manager"
+  )
+  
+  // Render everything
+  title_box.render(container_buf, 1, 0)
+  
+  // Stats box
+  let stats_box = @components.Box::new(
+    x=0, y=0, width=48, height=5,
+    border=@components.Border::new(
+      style=@components.BorderStyle::Single,
+      color=@core.Color::Green
+    ),
+    title="Statistics"
+  )
+  stats_box.render(container_buf, 1, 4)
+  
+  // Add stats content
+  container_buf.write_string(3, 6, "Total tasks: " + todos.get().length().to_string())
+  container_buf.write_string(3, 7, "Completed: " + completed_count.get().to_string() + " (" + progress.get().to_string() + "%)")
+  
+  // Progress bar
+  let bar_width = 30
+  let filled = (progress.get() * bar_width) / 100
+  let mut progress_bar = "["
+  for i = 0; i < bar_width; i = i + 1 {
+    progress_bar = progress_bar + if i < filled { "█" } else { "░" }
+  }
+  progress_bar = progress_bar + "]"
+  container_buf.write_string(3, 8, progress_bar)
+  
+  // TODO list
+  let list_box = @components.Box::new(
+    x=0, y=0, width=48, height=10,
+    border=@components.Border::new(
+      style=@components.BorderStyle::Single,
+      color=@core.Color::Blue
+    ),
+    title="Tasks"
+  )
+  list_box.render(container_buf, 1, 10)
+  
+  // Render TODO items
+  let items = todos.get()
+  for i = 0; i < items.length(); i = i + 1 {
+    let (task, done) = items[i]
+    let checkbox = if done { "[✓]" } else { "[ ]" }
+    let y = 12 + i
+    
+    container_buf.write_string(3, y, checkbox + " " + task)
+    
+    // Color completed items
+    if done {
+      for x = 3; x < 3 + checkbox.length() + 1 + task.length(); x = x + 1 {
+        match container_buf.get(x, y) {
+          Some(cell) => {
+            cell.foreground = @core.Color::Green
+            container_buf.set(x, y, cell)
+          }
+          None => ()
+        }
+      }
+    }
+  }
+  
+  // Print the entire UI
+  print_full_buffer(container_buf)
+  
+  // Simulate interactions
+  println("\n🎮 Simulating interactions:")
+  
+  // Toggle first item
+  let mut items = todos.get()
+  let (task, _) = items[0]
+  items[0] = (task, true)
+  todos.set(items)
+  println("✓ Marked \"" + task + "\" as complete")
+  println("  Progress: " + progress.get().to_string() + "%")
+  
+  // Add new item
+  items = todos.get()
+  items.push(("Write documentation", false))
+  todos.set(items)
+  println("+ Added \"Write documentation\"")
+  println("  Total tasks: " + items.length().to_string())
+}
+
+fn print_full_buffer(buf : @core.Buffer) {
+  for y = 0; y < buf.height; y = y + 1 {
+    let mut line = ""
+    let mut has_content = false
+    
+    for x = 0; x < buf.width; x = x + 1 {
+      match buf.get(x, y) {
+        Some(cell) => {
+          line = line + cell.char
+          if cell.char != " " { has_content = true }
+        }
+        None => line = line + " "
+      }
+    }
+    
+    if has_content {
+      println(line)
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "import": [
+    "moonbit-community/onebit-tui/core",
+    "moonbit-community/onebit-tui/theming"
+  ]
+}

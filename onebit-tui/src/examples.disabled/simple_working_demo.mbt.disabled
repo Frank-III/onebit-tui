@@ -1,0 +1,118 @@
+///|
+/// Simple Working Demo
+/// A minimal demo that showcases OneBit TUI features without complex dependencies
+
+pub fn simple_working_demo() -> Unit {
+  println("=== OneBit TUI Working Demo ===\n")
+  
+  // 1. Core Types Demo
+  println("1. Core Types:")
+  let white = @core.RGBA::white()
+  let blue = @core.RGBA::rgb(0.2, 0.5, 1.0)
+  let red = @core.RGBA::red()
+  println("   Colors: white, blue, red")
+  
+  // 2. Terminal Buffer Demo
+  println("\n2. Terminal Buffer:")
+  let buffer = @core.TerminalBuffer::new(40, 10)
+  
+  // Draw a box
+  buffer.write_string(1, 1, "╔══════════════════════════╗", white, @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(1, 2, "║  OneBit TUI Demo        ║", blue, @core.RGBA::black(), @core.TextStyle::Bold)
+  buffer.write_string(1, 3, "╚══════════════════════════╝", white, @core.RGBA::black(), @core.TextStyle::None)
+  
+  // Write some text
+  buffer.write_string(5, 5, "Hello, World!", @core.RGBA::green(), @core.RGBA::black(), @core.TextStyle::None)
+  buffer.write_string(5, 6, "Welcome to MoonBit TUI", @core.RGBA::yellow(), @core.RGBA::black(), @core.TextStyle::Italic)
+  
+  // Show buffer content
+  println(buffer.to_ansi())
+  
+  // 3. Reactive System Demo
+  println("\n3. Reactive System:")
+  let (count, set_count) = @reactive.create_signal(0)
+  let (message, set_message) = @reactive.create_signal("Initial")
+  
+  // Create effect that runs when count changes
+  let effect_ran = @reactive.Ref::new(false)
+  @reactive.create_effect(fn() {
+    if count.get() > 0 {
+      effect_ran.val = true
+      println("   Effect: Count changed to " + count.get().to_string())
+    }
+  })
+  
+  set_count(5)
+  set_message("Count updated!")
+  println("   Signal value: " + count.get().to_string())
+  println("   Message: " + message.get())
+  
+  // 4. Box Component Demo
+  println("\n4. Box Component:")
+  let box = @components.Box::new("demo-box")
+  box.set_bounds(0, 0, 30, 8)
+  box.border_style = @core.BorderStyle::Double
+  box.title = Some("Component Demo")
+  box.background_color = @core.RGBA::rgb(0.1, 0.1, 0.2)
+  
+  let demo_buffer = @core.TerminalBuffer::new(35, 10)
+  box.render(demo_buffer)
+  println(demo_buffer.to_ansi())
+  
+  // 5. Animation Demo
+  println("\n5. Animation System:")
+  let anim = @ui.DoubleAnimation::new(
+    0.0, 
+    100.0, 
+    1000,
+    @ui.EasingFunction(@ui.ease_in_out_quad)
+  )
+  
+  anim.is_running = true
+  anim.update(250) // 25% progress
+  println("   Animation at 25%: " + anim.current.to_string())
+  
+  anim.update(500) // 75% progress  
+  println("   Animation at 75%: " + anim.current.to_string())
+  
+  anim.update(250) // 100% progress
+  println("   Animation complete: " + anim.current.to_string())
+  
+  // 6. Text Styles Demo
+  println("\n6. Text Styles:")
+  let style_buffer = @core.TerminalBuffer::new(40, 8)
+  
+  style_buffer.write_string(2, 1, "Normal Text", white, @core.RGBA::black(), @core.TextStyle::None)
+  style_buffer.write_string(2, 2, "Bold Text", white, @core.RGBA::black(), @core.TextStyle::Bold)
+  style_buffer.write_string(2, 3, "Italic Text", white, @core.RGBA::black(), @core.TextStyle::Italic)
+  style_buffer.write_string(2, 4, "Underline Text", white, @core.RGBA::black(), @core.TextStyle::Underline)
+  
+  println(style_buffer.to_ansi())
+  
+  // 7. Color Interpolation Demo
+  println("\n7. Color Interpolation:")
+  let gradient_buffer = @core.TerminalBuffer::new(40, 3)
+  
+  for i = 0; i < 40; i = i + 1 {
+    let t = i.to_double() / 39.0
+    let color = @core.RGBA::lerp(red, blue, t)
+    gradient_buffer.write_char(i, 1, '█', color, @core.RGBA::black(), @core.TextStyle::None)
+  }
+  
+  println(gradient_buffer.to_ansi())
+  
+  println("\n=== Demo Complete ===")
+  println("OneBit TUI provides:")
+  println("• Type-safe color system with RGBA support")
+  println("• Terminal buffer with ANSI rendering")
+  println("• Reactive state management (signals)")  
+  println("• Component system with builders")
+  println("• Animation with easing functions")
+  println("• Rich text styling options")
+  println("• And much more!")
+}
+
+// Entry point
+pub fn main() -> Unit {
+  simple_working_demo()
+}
