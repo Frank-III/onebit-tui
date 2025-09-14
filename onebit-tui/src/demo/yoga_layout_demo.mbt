@@ -1,15 +1,15 @@
 ///| Minimal Yoga layout demo for OneBit-TUI
 
-fn run_yoga_layout_demo(renderer : @core.Renderer) -> Unit {
-  let view = @core.box(
+fn run_yoga_layout_demo(renderer : Renderer) -> Unit {
+  let view = box(
     title=Some("Yoga Box"),
     padding=2,
     children=[
-      @core.vstack([
-        @core.text("Top area", color=@core.RGBA::rgb(0.9,0.9,0.2)),
-        @core.hstack([
-          @core.text("Left"),
-          @core.text("Right")
+      vstack([
+        text("Top area", color=RGBA::rgb(0.9,0.9,0.2)),
+        hstack([
+          text("Left"),
+          text("Right")
         ])
       ])
     ]

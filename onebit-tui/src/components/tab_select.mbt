@@ -17,10 +17,10 @@ pub(all) struct TabSelect {
 
 pub fn TabSelect::new(
   items : Array[TabSelectItem],
-  ~selected_index : Int = 0,
-  ~on_change : Option[(String) -> Unit] = None
+  selected_index~ : Int = 0,
+  on_change~ : Option[(String) -> Unit] = None
 ) -> TabSelect {
-  TabSelect {
+  {
     items,
     selected_index,
     focused: false,
@@ -32,7 +32,7 @@ pub fn TabSelect::new(
   }
 }
 
-pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
+pub fn TabSelect::render(self : TabSelect, buffer : @core.TerminalBuffer) -> Unit {
   let mut x_offset = 0
   
   for i, item in self.items {
@@ -40,14 +40,14 @@ pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
     let is_disabled = item.disabled
     
     // Tab styling
-    let style = if is_disabled {
-      buffer.theme.get_style("disabled")
+    let (fg_color, bg_color) = if is_disabled {
+      (@core.RGBA::gray(), @core.RGBA::black())
     } else if is_selected && self.focused {
-      buffer.theme.get_style("focus")
+      (@core.RGBA::white(), @core.RGBA::blue())
     } else if is_selected {
-      buffer.theme.get_style("selected")
+      (@core.RGBA::white(), @core.RGBA::gray())
     } else {
-      buffer.theme.get_style("normal")
+      (@core.RGBA::white(), @core.RGBA::black())
     }
     
     // Draw tab background
@@ -58,8 +58,9 @@ pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
       tab_width,
       self.height,
       ' ',
-      style.fg,
-      style.bg
+      fg_color,
+      bg_color,
+      @core.TextStyle::None
     )
     
     // Draw tab text
@@ -67,8 +68,9 @@ pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
       self.x + x_offset + 2,
       self.y,
       item.label,
-      style.fg,
-      style.bg
+      fg_color,
+      bg_color,
+      @core.TextStyle::None
     )
     
     // Draw separator between tabs (except for last tab)
@@ -77,8 +79,9 @@ pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
         self.x + x_offset + tab_width,
         self.y,
         "│",
-        buffer.theme.get_style("border").fg,
-        buffer.theme.get_style("border").bg
+        @core.RGBA::gray(),
+        @core.RGBA::black(),
+        @core.TextStyle::None
       )
     }
     
@@ -86,7 +89,7 @@ pub fn render(self : TabSelect, buffer : Buffer) -> Unit {
   }
 }
 
-pub fn handle_key(self : TabSelect, key : String) -> Bool {
+pub fn TabSelect::handle_key(self : TabSelect, key : String) -> Bool {
   if not(self.focused) {
     return false
   }
@@ -156,7 +159,7 @@ pub fn handle_key(self : TabSelect, key : String) -> Bool {
   }
 }
 
-pub fn handle_mouse(self : TabSelect, event : MouseEvent) -> Bool {
+pub fn TabSelect::handle_mouse(self : TabSelect, event : @core.MouseEvent) -> Bool {
   if event.y != self.y || event.y >= self.y + self.height {
     return false
   }
@@ -166,7 +169,7 @@ pub fn handle_mouse(self : TabSelect, event : MouseEvent) -> Bool {
     let tab_width = item.label.length() + 4
     
     if event.x >= self.x + x_offset && event.x < self.x + x_offset + tab_width {
-      if not(item.disabled) && event.button == MouseButton::Left {
+      if not(item.disabled) && event.button == 0 {  // 0 = left button
         self.selected_index = i
         self.focused = true
         match self.on_change {
@@ -183,25 +186,25 @@ pub fn handle_mouse(self : TabSelect, event : MouseEvent) -> Bool {
   false
 }
 
-pub fn set_position(self : TabSelect, x : Int, y : Int) -> Unit {
+pub fn TabSelect::set_position(self : TabSelect, x : Int, y : Int) -> Unit {
   self.x = x
   self.y = y
 }
 
-pub fn set_size(self : TabSelect, width : Int, height : Int) -> Unit {
+pub fn TabSelect::set_size(self : TabSelect, width : Int, height : Int) -> Unit {
   self.width = width
   self.height = height
 }
 
-pub fn focus(self : TabSelect) -> Unit {
+pub fn TabSelect::focus(self : TabSelect) -> Unit {
   self.focused = true
 }
 
-pub fn blur(self : TabSelect) -> Unit {
+pub fn TabSelect::blur(self : TabSelect) -> Unit {
   self.focused = false
 }
 
-pub fn get_selected_value(self : TabSelect) -> String {
+pub fn TabSelect::get_selected_value(self : TabSelect) -> String {
   if self.selected_index >= 0 && self.selected_index < self.items.length() {
     self.items[self.selected_index].value
   } else {

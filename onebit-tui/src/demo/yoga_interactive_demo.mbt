@@ -2,15 +2,15 @@
 
 fn run_yoga_interactive_demo() -> Unit {
   // Build a simple view tree
-  let view = @core.box(
+  let view = box(
     title=Some("Yoga Interactive"),
     padding=2,
     children=[
-      @core.vstack([
-        @core.text("Use ←/→ to move, Space to toggle, q to quit"),
-        @core.hstack([
-          @core.text("Left"),
-          @core.text("Right")
+      vstack([
+        text("Use ←/→ to move, Space to toggle, q to quit"),
+        hstack([
+          text("Left"),
+          text("Right")
         ])
       ])
     ]
@@ -23,15 +23,15 @@ fn run_yoga_interactive_demo() -> Unit {
       ignore(@ffi.set_terminal_raw_mode())
       let mut running = true
       let mut selected = 0
-      let fm = @core.FocusManager::new(0)
+      let fm = FocusManager::new(0)
       let mut toggled = false
 
       while running {
         // Compute layout and flatten leaves
         let buffer = renderer.get_next_buffer()
         buffer.clear(0.05, 0.05, 0.1, 1.0)
-        let bounds = @core.Rect::new(0, 0, 80, 24)
-        let items = @core.flatten_layout(view, bounds)
+        let bounds = Rect::new(0, 0, 80, 24)
+        let items = flatten_layout(view, bounds)
         fm.set_count(items.length())
         match fm.get_focused() {
           Some(i) => selected = i
@@ -42,7 +42,7 @@ fn run_yoga_interactive_demo() -> Unit {
         if selected >= items.length() { selected = items.length() - 1 }
 
         // Draw view
-        @core.render_view_to_buffer(view, buffer, bounds)
+        render_view_to_buffer(view, buffer, bounds)
 
         // Overlay highlight for selected leaf
         let sb = items[selected].bounds
@@ -95,7 +95,7 @@ fn run_yoga_interactive_demo() -> Unit {
             }
           }
           @ffi.InputEvent::MouseDown(mx, my, _) => {
-            match @core.hit_test(mx, my, items) {
+            match hit_test(mx, my, items) {
               Some(idx) => { fm.focus(idx); selected = idx }
               None => ()
             }

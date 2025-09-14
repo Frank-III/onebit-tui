@@ -101,7 +101,7 @@ fn init_dashboard_state() -> DashboardState {
       value=0.45,
       label="CPU Usage",
       style=@components.ProgressBarStyle::Gradient,
-      bar_color=@core.RGBA::new(0.2, 0.8, 0.4, 1.0),
+      bar_color=RGBA::new(0.2, 0.8, 0.4, 1.0),
       show_percentage=true
     ),
     
@@ -109,7 +109,7 @@ fn init_dashboard_state() -> DashboardState {
       value=0.62,
       label="Memory",
       style=@components.ProgressBarStyle::Solid,
-      bar_color=@core.RGBA::new(0.8, 0.6, 0.2, 1.0),
+      bar_color=RGBA::new(0.8, 0.6, 0.2, 1.0),
       show_percentage=true
     ),
     
@@ -117,20 +117,20 @@ fn init_dashboard_state() -> DashboardState {
       value=0.38,
       label="Disk Space",
       style=@components.ProgressBarStyle::Segmented(10),
-      bar_color=@core.RGBA::new(0.6, 0.4, 0.8, 1.0),
+      bar_color=RGBA::new(0.6, 0.4, 0.8, 1.0),
       show_percentage=true
     ),
     
     network_spinner: @components.Spinner::new(
       style=@components.SpinnerStyle::Dots,
       message="Network Active",
-      color=@core.RGBA::new(0.4, 0.8, 1.0, 1.0)
+      color=RGBA::new(0.4, 0.8, 1.0, 1.0)
     ),
     
     loading_bar: @components.LoadingBar::new(
       width=30,
       style=@components.LoadingBarStyle::Bounce,
-      color=@core.RGBA::new(0.3, 0.9, 0.3, 1.0)
+      color=RGBA::new(0.3, 0.9, 0.3, 1.0)
     ),
     
     cpu_history,

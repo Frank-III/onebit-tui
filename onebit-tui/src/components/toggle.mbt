@@ -11,12 +11,12 @@ pub(all) struct Toggle {
 }
 
 pub fn Toggle::new(
-  ~checked : Bool = false,
-  ~disabled : Bool = false,
-  ~label : String = "",
-  ~on_change : Option[(Bool) -> Unit] = None
+  checked~ : Bool = false,
+  disabled~ : Bool = false,
+  label~ : String = "",
+  on_change~ : Option[(Bool) -> Unit] = None
 ) -> Toggle {
-  Toggle {
+  {
     checked,
     focused: false,
     disabled,
@@ -29,18 +29,18 @@ pub fn Toggle::new(
   }
 }
 
-pub fn render(self : Toggle, buffer : Buffer) -> Unit {
-  let style = if self.disabled {
-    buffer.theme.get_style("disabled")
+pub fn Toggle::render(self : Toggle, buffer : @core.TerminalBuffer) -> Unit {
+  let (fg_color, bg_color) = if self.disabled {
+    (@core.RGBA::gray(), @core.RGBA::black())
   } else if self.focused {
-    buffer.theme.get_style("focus")
+    (@core.RGBA::white(), @core.RGBA::blue())
   } else {
-    buffer.theme.get_style("normal")
+    (@core.RGBA::white(), @core.RGBA::black())
   }
   
   // Draw toggle switch
   let toggle_display = if self.checked { "[●]" } else { "[ ]" }
-  buffer.write_string(self.x, self.y, toggle_display, style.fg, style.bg)
+  buffer.write_string(self.x, self.y, toggle_display, fg_color, bg_color, @core.TextStyle::None)
   
   // Draw label if provided
   if self.label.length() > 0 {
@@ -48,13 +48,14 @@ pub fn render(self : Toggle, buffer : Buffer) -> Unit {
       self.x + 4,
       self.y,
       self.label,
-      style.fg,
-      style.bg
+      fg_color,
+      bg_color,
+      @core.TextStyle::None
     )
   }
 }
 
-pub fn handle_key(self : Toggle, key : String) -> Bool {
+pub fn Toggle::handle_key(self : Toggle, key : String) -> Bool {
   if not(self.focused) || self.disabled {
     return false
   }
@@ -72,7 +73,7 @@ pub fn handle_key(self : Toggle, key : String) -> Bool {
   }
 }
 
-pub fn handle_mouse(self : Toggle, event : MouseEvent) -> Bool {
+pub fn Toggle::handle_mouse(self : Toggle, event : @core.MouseEvent) -> Bool {
   if self.disabled {
     return false
   }
@@ -80,7 +81,7 @@ pub fn handle_mouse(self : Toggle, event : MouseEvent) -> Bool {
   // Check if click is within toggle bounds
   let toggle_width = if self.label.length() > 0 { 4 + self.label.length() } else { 3 }
   
-  if event.button == MouseButton::Left &&
+  if event.button == 0 &&  // 0 = left button
      event.x >= self.x &&
      event.x < self.x + toggle_width &&
      event.y == self.y {
@@ -96,29 +97,29 @@ pub fn handle_mouse(self : Toggle, event : MouseEvent) -> Bool {
   false
 }
 
-pub fn set_position(self : Toggle, x : Int, y : Int) -> Unit {
+pub fn Toggle::set_position(self : Toggle, x : Int, y : Int) -> Unit {
   self.x = x
   self.y = y
 }
 
-pub fn set_size(self : Toggle, width : Int, height : Int) -> Unit {
+pub fn Toggle::set_size(self : Toggle, width : Int, height : Int) -> Unit {
   self.width = width
   self.height = height
 }
 
-pub fn focus(self : Toggle) -> Unit {
+pub fn Toggle::focus(self : Toggle) -> Unit {
   self.focused = true
 }
 
-pub fn blur(self : Toggle) -> Unit {
+pub fn Toggle::blur(self : Toggle) -> Unit {
   self.focused = false
 }
 
-pub fn is_checked(self : Toggle) -> Bool {
+pub fn Toggle::is_checked(self : Toggle) -> Bool {
   self.checked
 }
 
-pub fn set_checked(self : Toggle, checked : Bool) -> Unit {
+pub fn Toggle::set_checked(self : Toggle, checked : Bool) -> Unit {
   self.checked = checked
   match self.on_change {
     Some(callback) => callback(checked)

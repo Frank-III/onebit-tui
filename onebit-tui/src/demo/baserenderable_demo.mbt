@@ -10,24 +10,24 @@ fn main() -> Unit {
   let (width, height) = terminal.get_size()
   
   // Create buffer
-  let buffer = @core.Buffer::new(width, height)
-  let theme = @core.Theme::default()
+  let buffer = Buffer::new(width, height)
+  let theme = Theme::default()
   buffer.theme = theme
   
   // Create components demonstrating composition
   
   // 1. Text inside Box - most common pattern
   let header_box = @components.Box::new("header-box")
-    .with_border_style(@core.BorderStyle::Double)
-    .with_border_color(@core.Color::cyan())
+    .with_border_style(BorderStyle::Double)
+    .with_border_color(Color::cyan())
     .with_title("BaseRenderable Architecture Demo")
     .with_padding(1)
     .with_dimensions(2, 1, width - 4, 5)
   
   let header_text = @components.Text::new("header-text", "ANY component can contain ANY other component!")
-    .with_align(@core.TextAlign::Center)
-    .with_style(@core.TextStyle::Bold)
-    .with_foreground_color(@core.Color::yellow())
+    .with_align(TextAlign::Center)
+    .with_style(TextStyle::Bold)
+    .with_foreground_color(Color::yellow())
     .with_dimensions(0, 0, header_box.base.width - 4, 1)
   
   // Text is a child of Box!
@@ -35,21 +35,21 @@ fn main() -> Unit {
   
   // 2. Box inside Box (nested boxes)
   let outer_box = @components.Box::new("outer-box")
-    .with_border_style(@core.BorderStyle::Single)
-    .with_border_color(@core.Color::blue())
+    .with_border_style(BorderStyle::Single)
+    .with_border_color(Color::blue())
     .with_title("Outer Box")
     .with_dimensions(2, 7, width / 2 - 2, 12)
   
   let inner_box = @components.Box::new("inner-box")
-    .with_border_style(@core.BorderStyle::Rounded)
-    .with_border_color(@core.Color::green())
+    .with_border_style(BorderStyle::Rounded)
+    .with_border_color(Color::green())
     .with_title("Inner Box")
     .with_padding(1)
     .with_dimensions(2, 2, outer_box.base.width - 6, 8)
   
   let inner_text = @components.Text::new("inner-text", "I'm text inside two nested boxes! This proves that components can be freely composed.")
-    .with_foreground_color(@core.Color::magenta())
-    .with_wrap(@core.TextWrap::Word)
+    .with_foreground_color(Color::magenta())
+    .with_wrap(TextWrap::Word)
     .with_dimensions(0, 0, inner_box.base.width - 4, 6)
   
   // Compose: Text -> Inner Box -> Outer Box
@@ -61,24 +61,24 @@ fn main() -> Unit {
     .with_dimensions(width / 2 + 1, 7, width / 2 - 3, 12)
   
   let features_box = @components.Box::new("features-box")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_title("Key Features")
     .with_dimensions(0, 0, features_group.base.width, features_group.base.height)
   
   let feature1 = @components.Text::new("feature1", "✓ Components use BaseRenderable")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(2, 2, features_box.base.width - 4, 1)
   
   let feature2 = @components.Text::new("feature2", "✓ Any component can contain any component")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(2, 3, features_box.base.width - 4, 1)
   
   let feature3 = @components.Text::new("feature3", "✓ Components set their own render function")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(2, 4, features_box.base.width - 4, 1)
   
   let feature4 = @components.Text::new("feature4", "✓ Layout helpers create components")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(2, 5, features_box.base.width - 4, 1)
   
   // Add features to the box
@@ -92,7 +92,7 @@ fn main() -> Unit {
   
   // 4. Complex composition - even unusual combinations work!
   let unusual_box = @components.Box::new("unusual-box")
-    .with_border_style(@core.BorderStyle::Dashed)
+    .with_border_style(BorderStyle::Dashed)
     .with_title("Unusual: Box containing Select!")
     .with_dimensions(2, 20, width - 4, 8)
   
@@ -119,16 +119,16 @@ fn main() -> Unit {
   let mut frame = 0
   
   while running {
-    buffer.clear(@core.Color::rgb(10, 10, 20))
+    buffer.clear(Color::rgb(10, 10, 20))
     
     // Render the entire component tree
     root.as_renderable().render(buffer)
     
     // Animation: update inner text color
     let color = if frame % 60 < 30 {
-      @core.Color::magenta()
+      Color::magenta()
     } else {
-      @core.Color::cyan()
+      Color::cyan()
     }
     inner_text.base.foreground_color = color
     
@@ -138,8 +138,8 @@ fn main() -> Unit {
       2,
       height - 1,
       status,
-      @core.Color::white(),
-      @core.Color::rgb(30, 30, 40)
+      Color::white(),
+      Color::rgb(30, 30, 40)
     )
     
     // Render to terminal

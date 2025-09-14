@@ -1,7 +1,7 @@
 // MoonBit OpenTUI Showcase - Unique features demonstration
 
 fn main {
-  let mut app = @core.App::new()
+  let mut app = App::new()
   let animation_manager = @animation.AnimationManager::new()
   let theme_manager = @theming.ThemeManager::new()
   let plugin_manager = @plugins.PluginManager::new(theme_manager)
@@ -201,14 +201,14 @@ fn main {
   // Run app
   app.run(fn(event) {
     match event {
-      @core.Event::Key(key) => {
+      Event::Key(key) => {
         match key {
-          @core.Key::Char('q') => return false
-          @core.Key::Tab => {
+          Key::Char('q') => return false
+          Key::Tab => {
             current_panel = (current_panel + 1) % 3
             // Update focus indicator
           }
-          @core.Key::Space => {
+          Key::Space => {
             if animations_paused {
               timeline.play()
               animations_paused = false
@@ -217,7 +217,7 @@ fn main {
               animations_paused = true
             }
           }
-          @core.Key::Char('t') => {
+          Key::Char('t') => {
             match theme_list.get_selected_index() {
               0 => theme_manager.set_theme("ocean")
               1 => theme_manager.set_theme("forest")
@@ -226,12 +226,12 @@ fn main {
               _ => ()
             }
           }
-          @core.Key::Up => {
+          Key::Up => {
             if current_panel == 2 {
               theme_list.select_previous()
             }
           }
-          @core.Key::Down => {
+          Key::Down => {
             if current_panel == 2 {
               theme_list.select_next()
             }
@@ -239,7 +239,7 @@ fn main {
           _ => ()
         }
       }
-      @core.Event::Tick => {
+      Event::Tick => {
         // Update animations
         if not(animations_paused) {
           animation_manager.update(frame * 16)

@@ -1,0 +1,357 @@
+///| Declarative UI components that integrate with Yoga layout
+///| These components automatically create and manage Yoga nodes
+
+import moonbitlang/core/ref
+
+/// Base UI element that wraps a Yoga node
+pub struct UIElement {
+  yoga_node : @wrapper.Node
+  mut component : @components.BaseRenderable?
+  mut children : Array[UIElement]
+}
+
+/// Box component with automatic Yoga layout
+pub fn box() -> BoxBuilder {
+  BoxBuilder::new()
+}
+
+pub struct BoxBuilder {
+  element : UIElement
+  mut border : Bool
+  mut border_style : @core.BorderStyle?
+  mut border_color : @core.RGBA?
+  mut title : String?
+  mut padding : Float?
+  mut margin : Float?
+  mut background : @core.RGBA?
+}
+
+pub fn BoxBuilder::new() -> BoxBuilder {
+  {
+    element: UIElement {
+      yoga_node: @wrapper.Node::new(),
+      component: None,
+      children: []
+    },
+    border: false,
+    border_style: None,
+    border_color: None,
+    title: None,
+    padding: None,
+    margin: None,
+    background: None
+  }
+}
+
+// Yoga layout properties (direct mapping)
+pub fn BoxBuilder::flex_direction(self : BoxBuilder, direction : @types.FlexDirection) -> BoxBuilder {
+  self.element.yoga_node.set_flex_direction(direction)
+  self
+}
+
+pub fn BoxBuilder::flex_grow(self : BoxBuilder, grow : Float) -> BoxBuilder {
+  self.element.yoga_node.set_flex_grow(grow)
+  self
+}
+
+pub fn BoxBuilder::flex(self : BoxBuilder, flex : Float) -> BoxBuilder {
+  self.element.yoga_node.set_flex(flex)
+  self
+}
+
+pub fn BoxBuilder::align_items(self : BoxBuilder, align : @types.Align) -> BoxBuilder {
+  self.element.yoga_node.set_align_items(align)
+  self
+}
+
+pub fn BoxBuilder::justify_content(self : BoxBuilder, justify : @types.Justify) -> BoxBuilder {
+  self.element.yoga_node.set_justify_content(justify)
+  self
+}
+
+pub fn BoxBuilder::gap(self : BoxBuilder, gap : Float) -> BoxBuilder {
+  self.element.yoga_node.set_gap(@types.Gutter::All, gap)
+  self
+}
+
+// Size properties (only when needed)
+pub fn BoxBuilder::height(self : BoxBuilder, height : Float) -> BoxBuilder {
+  self.element.yoga_node.set_height(height)
+  self
+}
+
+pub fn BoxBuilder::width(self : BoxBuilder, width : Float) -> BoxBuilder {
+  self.element.yoga_node.set_width(width)
+  self
+}
+
+// Style properties
+pub fn BoxBuilder::border(self : BoxBuilder, enabled : Bool) -> BoxBuilder {
+  self.border = enabled
+  if enabled && self.border_style == None {
+    self.border_style = Some(@core.BorderStyle::Single)
+  }
+  self
+}
+
+pub fn BoxBuilder::border_style(self : BoxBuilder, style : @core.BorderStyle) -> BoxBuilder {
+  self.border = true
+  self.border_style = Some(style)
+  self
+}
+
+pub fn BoxBuilder::title(self : BoxBuilder, title : String) -> BoxBuilder {
+  self.title = Some(title)
+  self
+}
+
+pub fn BoxBuilder::padding(self : BoxBuilder, padding : Float) -> BoxBuilder {
+  self.element.yoga_node.set_padding(@types.Edge::All, padding)
+  self.padding = Some(padding)
+  self
+}
+
+pub fn BoxBuilder::margin(self : BoxBuilder, margin : Float) -> BoxBuilder {
+  self.element.yoga_node.set_margin(@types.Edge::All, margin)
+  self.margin = Some(margin)
+  self
+}
+
+pub fn BoxBuilder::background(self : BoxBuilder, color : @core.RGBA) -> BoxBuilder {
+  self.background = Some(color)
+  self
+}
+
+// Children
+pub fn BoxBuilder::child(self : BoxBuilder, child : UIElement) -> BoxBuilder {
+  self.element.yoga_node.add_child(child.yoga_node)
+  self.element.children.push(child)
+  self
+}
+
+pub fn BoxBuilder::children(self : BoxBuilder, children : Array[UIElement]) -> BoxBuilder {
+  for i = 0; i < children.length(); i = i + 1 {
+    self.element.yoga_node.add_child(children[i].yoga_node)
+    self.element.children.push(children[i])
+  }
+  self
+}
+
+pub fn BoxBuilder::build(self : BoxBuilder) -> UIElement {
+  // Create the actual Box component when rendering
+  self.element
+}
+
+/// Text component
+pub fn text(content : String) -> TextBuilder {
+  TextBuilder::new(content)
+}
+
+pub struct TextBuilder {
+  element : UIElement
+  content : String
+  mut color : @core.RGBA?
+  mut style : @core.TextStyle?
+  mut align : @core.TextAlign?
+}
+
+pub fn TextBuilder::new(content : String) -> TextBuilder {
+  {
+    element: UIElement {
+      yoga_node: @wrapper.Node::new(),
+      component: None,
+      children: []
+    },
+    content: content,
+    color: None,
+    style: None,
+    align: None
+  }
+}
+
+pub fn TextBuilder::color(self : TextBuilder, color : @core.RGBA) -> TextBuilder {
+  self.color = Some(color)
+  self
+}
+
+pub fn TextBuilder::bold(self : TextBuilder) -> TextBuilder {
+  self.style = Some(@core.TextStyle::Bold)
+  self
+}
+
+pub fn TextBuilder::align(self : TextBuilder, align : @core.TextAlign) -> TextBuilder {
+  self.align = Some(align)
+  self
+}
+
+// Yoga properties for text
+pub fn TextBuilder::margin(self : TextBuilder, margin : Float) -> TextBuilder {
+  self.element.yoga_node.set_margin(@types.Edge::All, margin)
+  self
+}
+
+pub fn TextBuilder::margin_top(self : TextBuilder, margin : Float) -> TextBuilder {
+  self.element.yoga_node.set_margin(@types.Edge::Top, margin)
+  self
+}
+
+pub fn TextBuilder::build(self : TextBuilder) -> UIElement {
+  self.element
+}
+
+/// Input component
+pub fn input() -> InputBuilder {
+  InputBuilder::new()
+}
+
+pub struct InputBuilder {
+  element : UIElement
+  mut placeholder : String?
+  mut value : String?
+  mut on_change : (String) -> Unit
+  mut focused : Bool
+}
+
+pub fn InputBuilder::new() -> InputBuilder {
+  {
+    element: UIElement {
+      yoga_node: @wrapper.Node::new(),
+      component: None,
+      children: []
+    },
+    placeholder: None,
+    value: None,
+    on_change: fn(_) { () },
+    focused: false
+  }
+}
+
+pub fn InputBuilder::placeholder(self : InputBuilder, text : String) -> InputBuilder {
+  self.placeholder = Some(text)
+  self
+}
+
+pub fn InputBuilder::value(self : InputBuilder, value : String) -> InputBuilder {
+  self.value = Some(value)
+  self
+}
+
+pub fn InputBuilder::on_input(self : InputBuilder, handler : (String) -> Unit) -> InputBuilder {
+  self.on_change = handler
+  self
+}
+
+pub fn InputBuilder::focused(self : InputBuilder, focused : Bool) -> InputBuilder {
+  self.focused = focused
+  self
+}
+
+pub fn InputBuilder::build(self : InputBuilder) -> UIElement {
+  self.element
+}
+
+/// Select component
+pub fn select(options : Array[String]) -> SelectBuilder {
+  SelectBuilder::new(options)
+}
+
+pub struct SelectBuilder {
+  element : UIElement
+  options : Array[String]
+  mut on_select : (Int) -> Unit
+  mut focused : Bool
+}
+
+pub fn SelectBuilder::new(options : Array[String]) -> SelectBuilder {
+  {
+    element: UIElement {
+      yoga_node: @wrapper.Node::new(),
+      component: None,
+      children: []
+    },
+    options: options,
+    on_select: fn(_) { () },
+    focused: false
+  }
+}
+
+pub fn SelectBuilder::on_select(self : SelectBuilder, handler : (Int) -> Unit) -> SelectBuilder {
+  self.on_select = handler
+  self
+}
+
+pub fn SelectBuilder::focused(self : SelectBuilder, focused : Bool) -> SelectBuilder {
+  self.focused = focused
+  self
+}
+
+pub fn SelectBuilder::height(self : SelectBuilder, height : Float) -> SelectBuilder {
+  self.element.yoga_node.set_height(height)
+  self
+}
+
+pub fn SelectBuilder::flex_grow(self : SelectBuilder, grow : Float) -> SelectBuilder {
+  self.element.yoga_node.set_flex_grow(grow)
+  self
+}
+
+pub fn SelectBuilder::build(self : SelectBuilder) -> UIElement {
+  self.element
+}
+
+/// Utility components
+pub fn spacer() -> UIElement {
+  let node = @wrapper.Node::new()
+  node.set_flex_grow(1.0)
+  UIElement {
+    yoga_node: node,
+    component: None,
+    children: []
+  }
+}
+
+/// Layout helpers - these return configured box builders
+pub fn hstack() -> BoxBuilder {
+  box().flex_direction(@types.FlexDirection::Row)
+}
+
+pub fn vstack() -> BoxBuilder {
+  box().flex_direction(@types.FlexDirection::Column)
+}
+
+pub fn center() -> BoxBuilder {
+  box()
+    .align_items(@types.Align::Center)
+    .justify_content(@types.Justify::Center)
+}
+
+/// Render a UI tree (called by App)
+pub fn UIElement::render(self : UIElement, buffer : @ffi.TextBuffer) -> Unit {
+  // Get calculated layout from Yoga
+  let layout = self.yoga_node.get_layout()
+  
+  // Render component if it exists
+  match self.component {
+    Some(component) => {
+      component.set_bounds(
+        layout.left.to_int(),
+        layout.top.to_int(),
+        layout.width.to_int(),
+        layout.height.to_int()
+      )
+      component.render(buffer)
+    }
+    None => ()
+  }
+  
+  // Render children
+  for i = 0; i < self.children.length(); i = i + 1 {
+    self.children[i].render(buffer)
+  }
+}
+
+/// Helper to create components from builders during render
+pub fn UIElement::create_components(self : UIElement) -> Unit {
+  // This would be called to instantiate the actual components
+  // based on the builder settings
+}

@@ -8,7 +8,7 @@
   ],
   "link": {
     "native": {
-      "cc": "clang",
+      "cc": "/usr/bin/clang",
       "cc-flags": "-I..",
       "cc-link-flags": "-L/Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib -lopentui_ffi -lopentui -Wl,-rpath,/Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib -L/Users/frankmac/projects/learn_ts/opentui/onebit-yoga/src/ffi -lyoga_wrap -L/Users/frankmac/projects/learn_ts/opentui/onebit-yoga/yoga-install/lib -lyogacore -lc++"
     }

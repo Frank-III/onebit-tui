@@ -55,7 +55,7 @@ pub fn Modal::new(id : String, title : String) -> Modal {
 }
 
 /// Get the base renderable
-pub fn as_renderable(self : Modal) -> @core.BaseRenderable {
+pub fn Modal::as_renderable(self : Modal) -> @core.BaseRenderable {
   self.base
 }
 

@@ -10,8 +10,8 @@ fn main() -> Unit {
   let (width, height) = terminal.get_size()
   
   // Create buffer
-  let buffer = @core.Buffer::new(width, height)
-  let theme = @core.Theme::default()
+  let buffer = Buffer::new(width, height)
+  let theme = Theme::default()
   buffer.theme = theme
   
   // Create Yoga config for layout
@@ -29,33 +29,33 @@ fn main() -> Unit {
   
   // 1. Text inside Box
   let header_box = @components.Box::new("header-box")
-    .with_border_style(@core.BorderStyle::Double)
-    .with_border_color(@core.Color::cyan())
+    .with_border_style(BorderStyle::Double)
+    .with_border_color(Color::cyan())
     .with_title("OpenTUI + Yoga Demo")
     .with_padding(1)
   
   let header_text = @components.Text::new("header-text", "Demonstrating BaseRenderable Architecture")
-    .with_align(@core.TextAlign::Center)
-    .with_style(@core.TextStyle::Bold)
-    .with_foreground_color(@core.Color::yellow())
+    .with_align(TextAlign::Center)
+    .with_style(TextStyle::Bold)
+    .with_foreground_color(Color::yellow())
   
   // Text is a child of Box!
   header_box.add_child(header_text.as_renderable())
   
   // 2. Box inside Box (nested boxes)
   let outer_box = @components.Box::new("outer-box")
-    .with_border_style(@core.BorderStyle::Single)
-    .with_border_color(@core.Color::blue())
+    .with_border_style(BorderStyle::Single)
+    .with_border_color(Color::blue())
     .with_title("Outer Box")
   
   let inner_box = @components.Box::new("inner-box")
-    .with_border_style(@core.BorderStyle::Rounded)
-    .with_border_color(@core.Color::green())
+    .with_border_style(BorderStyle::Rounded)
+    .with_border_color(Color::green())
     .with_title("Inner Box")
     .with_padding(1)
   
   let inner_text = @components.Text::new("inner-text", "I'm inside two boxes!")
-    .with_foreground_color(@core.Color::magenta())
+    .with_foreground_color(Color::magenta())
   
   // Compose: Text -> Inner Box -> Outer Box
   inner_box.add_child(inner_text.as_renderable())
@@ -65,13 +65,13 @@ fn main() -> Unit {
   let content_group = @components.Group::new("content-group")
   
   let item1 = @components.Text::new("item1", "• Any component can contain any component")
-    .with_foreground_color(@core.Color::white())
+    .with_foreground_color(Color::white())
   
   let item2 = @components.Text::new("item2", "• Components are composed via BaseRenderable")
-    .with_foreground_color(@core.Color::white())
+    .with_foreground_color(Color::white())
   
   let item3 = @components.Text::new("item3", "• Layout is handled by Yoga")
-    .with_foreground_color(@core.Color::white())
+    .with_foreground_color(Color::white())
   
   content_group.add_child(item1.as_renderable())
   content_group.add_child(item2.as_renderable())
@@ -79,14 +79,14 @@ fn main() -> Unit {
   
   // 4. Using layout helpers
   let button_group = @helpers.hstack([
-    create_button("OK", @core.Color::green()),
+    create_button("OK", Color::green()),
     @helpers.spacer(2, 1).as_renderable(),
-    create_button("Cancel", @core.Color::red()),
+    create_button("Cancel", Color::red()),
   ])
   
   // 5. Complex composition - Select inside a Box with Text
   let select_box = @components.Box::new("select-box")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_title("Selection")
   
   let select_label = @components.Text::new("select-label", "Choose an option:")
@@ -155,7 +155,7 @@ fn main() -> Unit {
   let mut running = true
   
   while running {
-    buffer.clear(@core.Color::rgb(10, 10, 20))
+    buffer.clear(Color::rgb(10, 10, 20))
     
     // Render the entire tree
     root_group.as_renderable().render(buffer)
@@ -166,8 +166,8 @@ fn main() -> Unit {
       width / 2 - status.length() / 2,
       height - 1,
       status,
-      @core.Color::white(),
-      @core.Color::rgb(30, 30, 40)
+      Color::white(),
+      Color::rgb(30, 30, 40)
     )
     
     // Render to terminal
@@ -193,14 +193,14 @@ fn main() -> Unit {
 }
 
 // Helper to create a button-like component
-fn create_button(label : String, color : @core.Color) -> @core.BaseRenderable {
+fn create_button(label : String, color : Color) -> BaseRenderable {
   let button_box = @components.Box::new("button-\{label}")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_border_color(color)
     .with_padding(0)
   
   let button_text = @components.Text::new("button-text-\{label}", label)
-    .with_align(@core.TextAlign::Center)
+    .with_align(TextAlign::Center)
     .with_foreground_color(color)
   
   button_box.add_child(button_text.as_renderable())
@@ -211,7 +211,7 @@ fn create_button(label : String, color : @core.Color) -> @core.BaseRenderable {
 }
 
 // Apply Yoga layout results to BaseRenderable
-fn apply_yoga_layout(renderable : @core.BaseRenderable, yoga_node : @yoga.Node) -> Unit {
+fn apply_yoga_layout(renderable : BaseRenderable, yoga_node : @yoga.Node) -> Unit {
   let layout = yoga_node.get_layout()
   renderable.x = layout.left.to_int()
   renderable.y = layout.top.to_int()

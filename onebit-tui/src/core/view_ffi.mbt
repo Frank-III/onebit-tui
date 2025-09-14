@@ -18,6 +18,7 @@ pub fn View::render_ffi(self : View, ctx : FFIRenderContext) -> Unit {
     ZStack(v) => v.render_ffi(ctx)
     Spacer(v) => v.render_ffi(ctx)
     Padding(v) => v.render_ffi(ctx)
+    Interact(v) => v.render_ffi(ctx)
   }
 }
 
@@ -82,10 +83,10 @@ pub fn BoxView::render_ffi(self : BoxView, ctx : FFIRenderContext) -> Unit {
   for i = 0; i < self.children.length(); i = i + 1 {
     match root.get_child(i) {
       Some(child_node) => {
-        let left = child_node.layout_left().to_int()
-        let top = child_node.layout_top().to_int()
-        let w = child_node.layout_width().to_int()
-        let h = child_node.layout_height().to_int()
+        let left = child_node.layout_left().to_double().to_int()
+        let top = child_node.layout_top().to_double().to_int()
+        let w = child_node.layout_width().to_double().to_int()
+        let h = child_node.layout_height().to_double().to_int()
         let cb = Rect::new(inner_x + left, inner_y + top, w, h)
         self.children[i].render_ffi(FFIRenderContext::{ buffer: ctx.buffer, bounds: cb })
       }
@@ -239,10 +240,10 @@ pub fn VStackView::render_ffi(self : VStackView, ctx : FFIRenderContext) -> Unit
   for i = 0; i < self.children.length(); i = i + 1 {
     match root.get_child(i) {
       Some(child_node) => {
-        let left = child_node.layout_left().to_int()
-        let top = child_node.layout_top().to_int()
-        let width = child_node.layout_width().to_int()
-        let height = child_node.layout_height().to_int()
+        let left = child_node.layout_left().to_double().to_int()
+        let top = child_node.layout_top().to_double().to_int()
+        let width = child_node.layout_width().to_double().to_int()
+        let height = child_node.layout_height().to_double().to_int()
         let child_bounds = Rect::new(
           ctx.bounds.x + left,
           ctx.bounds.y + top,
@@ -281,10 +282,10 @@ pub fn HStackView::render_ffi(self : HStackView, ctx : FFIRenderContext) -> Unit
   for i = 0; i < self.children.length(); i = i + 1 {
     match root.get_child(i) {
       Some(child_node) => {
-        let left = child_node.layout_left().to_int()
-        let top = child_node.layout_top().to_int()
-        let width = child_node.layout_width().to_int()
-        let height = child_node.layout_height().to_int()
+        let left = child_node.layout_left().to_double().to_int()
+        let top = child_node.layout_top().to_double().to_int()
+        let width = child_node.layout_width().to_double().to_int()
+        let height = child_node.layout_height().to_double().to_int()
         let child_bounds = Rect::new(
           ctx.bounds.x + left,
           ctx.bounds.y + top,
@@ -327,13 +328,19 @@ pub fn PaddingView::render_ffi(self : PaddingView, ctx : FFIRenderContext) -> Un
 
   match root.get_child(0) {
     Some(n) => {
-      let left = n.layout_left().to_int()
-      let top = n.layout_top().to_int()
-      let w = n.layout_width().to_int()
-      let h = n.layout_height().to_int()
+      let left = n.layout_left().to_double().to_int()
+      let top = n.layout_top().to_double().to_int()
+      let w = n.layout_width().to_double().to_int()
+      let h = n.layout_height().to_double().to_int()
       let pb = Rect::new(ctx.bounds.x + left, ctx.bounds.y + top, w, h)
       self.child.render_ffi(FFIRenderContext::{ buffer: ctx.buffer, bounds: pb })
     }
     None => ()
   }
+}
+
+/// InteractView rendering - render child with interaction
+pub fn InteractView::render_ffi(self : InteractView, ctx : FFIRenderContext) -> Unit {
+  // Simply render the child for now
+  self.child.render_ffi(ctx)
 }

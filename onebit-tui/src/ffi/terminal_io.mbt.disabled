@@ -1,0 +1,187 @@
+///| FFI bindings for terminal I/O and timing
+///| These provide input reading and timing functions
+
+// Input reading functions
+extern "C" fn readStdin(buffer : Bytes, max_len : UInt) -> Int = "readStdin"
+extern "C" fn setRawMode(enable : Bool) -> Unit = "setRawMode"
+extern "C" fn setNonBlocking(fd : Int, enable : Bool) -> Unit = "setNonBlocking"
+extern "C" fn waitForInput(timeout_ms : Int) -> Bool = "waitForInput"
+
+// Timing functions
+extern "C" fn getCurrentTimeMs() -> Int64 = "getCurrentTimeMs"
+extern "C" fn sleepMs(ms : UInt) -> Unit = "sleepMs"
+extern "C" fn setInterval(callback : () -> Unit, interval_ms : UInt) -> Int = "setInterval"
+extern "C" fn clearInterval(timer_id : Int) -> Unit = "clearInterval"
+
+// Signal handling
+extern "C" fn installSignalHandler(signal : Int, handler : () -> Unit) -> Unit = "installSignalHandler"
+extern "C" fn removeSignalHandler(signal : Int) -> Unit = "removeSignalHandler"
+
+// Terminal size detection
+extern "C" fn getTerminalSize() -> (Int, Int) = "getTerminalSize"
+extern "C" fn onTerminalResize(callback : (Int, Int) -> Unit) -> Unit = "onTerminalResize"
+
+// Public API
+pub fn read_input(max_bytes : Int) -> Bytes? {
+  let buffer = Bytes::make(max_bytes, 0)
+  let bytes_read = readStdin(buffer, max_bytes.to_uint())
+  if bytes_read > 0 {
+    Some(buffer[0:bytes_read])
+  } else {
+    None
+  }
+}
+
+pub fn set_raw_mode(enable : Bool) -> Unit {
+  setRawMode(enable)
+}
+
+pub fn set_non_blocking(enable : Bool) -> Unit {
+  setNonBlocking(0, enable)  // 0 = stdin
+}
+
+pub fn wait_for_input(timeout_ms : Int) -> Bool {
+  waitForInput(timeout_ms)
+}
+
+pub fn get_current_time_ms() -> Int64 {
+  getCurrentTimeMs()
+}
+
+pub fn sleep_ms(ms : Int) -> Unit {
+  sleepMs(ms.to_uint())
+}
+
+pub fn get_terminal_size() -> (Int, Int) {
+  getTerminalSize()
+}
+
+// Input event parsing
+pub enum InputEvent {
+  Key(key : Char, ctrl : Bool, alt : Bool, shift : Bool)
+  SpecialKey(key : SpecialKey)
+  Mouse(x : Int, y : Int, action : MouseAction)
+  Resize(width : Int, height : Int)
+  Unknown(bytes : Bytes)
+} derive(Show)
+
+pub enum SpecialKey {
+  Up | Down | Left | Right
+  Home | End | PageUp | PageDown
+  Insert | Delete | Backspace | Tab
+  Enter | Escape
+  F(num : Int)
+} derive(Show, Eq)
+
+pub enum MouseAction {
+  Click(button : Int)
+  Release(button : Int)
+  Move
+  Scroll(delta : Int)
+} derive(Show, Eq)
+
+pub fn parse_input(bytes : Bytes) -> InputEvent {
+  if bytes.length() == 0 {
+    return Unknown(bytes)
+  }
+  
+  let first = bytes[0]
+  
+  // ESC sequences
+  if first == 27 && bytes.length() > 1 {
+    return parse_escape_sequence(bytes)
+  }
+  
+  // Control characters
+  if first < 32 {
+    return parse_control_char(first)
+  }
+  
+  // Regular ASCII
+  if first < 127 {
+    return Key(first.to_char(), false, false, false)
+  }
+  
+  // UTF-8 or unknown
+  Unknown(bytes)
+}
+
+fn parse_escape_sequence(bytes : Bytes) -> InputEvent {
+  if bytes.length() < 2 {
+    return Key('\x1b', false, false, false)  // Just ESC
+  }
+  
+  match bytes[1] {
+    91 => {  // '[' - CSI sequence
+      if bytes.length() >= 3 {
+        match bytes[2] {
+          65 => SpecialKey(Up)
+          66 => SpecialKey(Down)
+          67 => SpecialKey(Right)
+          68 => SpecialKey(Left)
+          72 => SpecialKey(Home)
+          70 => SpecialKey(End)
+          _ => parse_csi_sequence(bytes)
+        }
+      } else {
+        Unknown(bytes)
+      }
+    }
+    79 => {  // 'O' - SS3 sequence
+      if bytes.length() >= 3 {
+        match bytes[2] {
+          80 => SpecialKey(F(1))
+          81 => SpecialKey(F(2))
+          82 => SpecialKey(F(3))
+          83 => SpecialKey(F(4))
+          _ => Unknown(bytes)
+        }
+      } else {
+        Unknown(bytes)
+      }
+    }
+    _ => {
+      // Alt+key
+      if bytes.length() == 2 && bytes[1] < 127 {
+        Key(bytes[1].to_char(), false, true, false)
+      } else {
+        Unknown(bytes)
+      }
+    }
+  }
+}
+
+fn parse_control_char(byte : Byte) -> InputEvent {
+  match byte {
+    8 | 127 => SpecialKey(Backspace)
+    9 => SpecialKey(Tab)
+    10 | 13 => SpecialKey(Enter)
+    27 => SpecialKey(Escape)
+    _ => {
+      // Ctrl+letter (1-26 map to Ctrl+A through Ctrl+Z)
+      if byte >= 1 && byte <= 26 {
+        Key((byte + 64).to_char(), true, false, false)
+      } else {
+        Unknown(Bytes::from_array([byte]))
+      }
+    }
+  }
+}
+
+fn parse_csi_sequence(bytes : Bytes) -> InputEvent {
+  // Parse complex CSI sequences like mouse events
+  // Format: ESC [ < button ; x ; y M/m (SGR mouse protocol)
+  if bytes.length() > 3 && bytes[2] == 60 {  // '<'
+    return parse_sgr_mouse(bytes)
+  }
+  
+  // Parse other CSI sequences
+  Unknown(bytes)
+}
+
+fn parse_sgr_mouse(bytes : Bytes) -> InputEvent {
+  // Simple parser for SGR mouse protocol
+  // Format: ESC [ < button ; x ; y M/m
+  // This is a simplified implementation
+  Unknown(bytes)  // TODO: Implement full SGR mouse parsing
+}

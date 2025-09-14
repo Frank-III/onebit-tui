@@ -158,7 +158,7 @@ pub struct Alignment {
 
 /// Smart constructors for clean API
 
-pub fn box(
+pub fn view_box(
   title~ : String? = None,
   border~ : BorderStyle = BorderStyle::Single,
   border_color~ : RGBA = RGBA::white(),
@@ -180,7 +180,7 @@ pub fn box(
   })
 }
 
-pub fn text(
+pub fn view_text(
   content : String,
   style~ : TextStyle = TextStyle::None,
   color~ : RGBA = RGBA::white(),
@@ -196,7 +196,7 @@ pub fn text(
   })
 }
 
-pub fn vstack(
+pub fn view_vstack(
   spacing~ : Int = 0,
   alignment~ : HorizontalAlignment = HorizontalAlignment::Leading,
   justify~ : JustifyContent = JustifyContent::Start,
@@ -210,7 +210,7 @@ pub fn vstack(
   })
 }
 
-pub fn hstack(
+pub fn view_hstack(
   spacing~ : Int = 0,
   alignment~ : VerticalAlignment = VerticalAlignment::Center,
   justify~ : JustifyContent = JustifyContent::Start,
@@ -238,11 +238,11 @@ pub fn group(children : Array[View]) -> View {
   View::Group({ children })
 }
 
-pub fn spacer(min_length~ : Int = 0) -> View {
+pub fn view_spacer(min_length~ : Int = 0) -> View {
   View::Spacer({ min_length })
 }
 
-pub fn padding(amount : Int, child : View) -> View {
+pub fn view_padding(amount : Int, child : View) -> View {
   View::Padding({ amount, child })
 }
 

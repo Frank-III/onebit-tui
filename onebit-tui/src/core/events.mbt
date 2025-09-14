@@ -70,10 +70,10 @@ pub fn collect_interact_handlers(view : View, bounds : Rect) -> Array[HandlerEnt
       match root.get_child(0) {
         Some(n) => {
           let cb = Rect::new(
-            bounds.x + n.layout_left().to_int(),
-            bounds.y + n.layout_top().to_int(),
-            n.layout_width().to_int(),
-            n.layout_height().to_int(),
+            bounds.x + n.layout_left().to_double().to_int(),
+            bounds.y + n.layout_top().to_double().to_int(),
+            n.layout_width().to_double().to_int(),
+            n.layout_height().to_double().to_int(),
           )
           collect_interact_handlers(p.child, cb)
         }
@@ -116,10 +116,10 @@ pub fn collect_interact_handlers(view : View, bounds : Rect) -> Array[HandlerEnt
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              bounds.x + n.layout_left().to_int(),
-              bounds.y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              bounds.x + n.layout_left().to_double().to_int(),
+              bounds.y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in collect_interact_handlers(vs.children[i], cb) { out.push(it) }
           }
@@ -162,10 +162,10 @@ pub fn collect_interact_handlers(view : View, bounds : Rect) -> Array[HandlerEnt
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              bounds.x + n.layout_left().to_int(),
-              bounds.y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              bounds.x + n.layout_left().to_double().to_int(),
+              bounds.y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in collect_interact_handlers(hs.children[i], cb) { out.push(it) }
           }
@@ -217,10 +217,10 @@ pub fn collect_interact_handlers(view : View, bounds : Rect) -> Array[HandlerEnt
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              inner_x + n.layout_left().to_int(),
-              inner_y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              inner_x + n.layout_left().to_double().to_int(),
+              inner_y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in collect_interact_handlers(bx.children[i], cb) { out.push(it) }
           }

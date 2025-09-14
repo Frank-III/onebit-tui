@@ -5,8 +5,8 @@ pub fn run_components_showcase_demo() -> Unit {
   let (width, height) = terminal.get_size()
   
   // Create buffer and theme
-  let buffer = @core.Buffer::new(width, height)
-  let theme = @core.Theme::default()
+  let buffer = Buffer::new(width, height)
+  let theme = Theme::default()
   buffer.theme = theme
   
   // Tab selection for different component categories
@@ -130,7 +130,7 @@ pub fn run_components_showcase_demo() -> Unit {
   terminal.clear()
   
   while running {
-    buffer.clear(@core.Color::rgb(20, 20, 30))
+    buffer.clear(Color::rgb(20, 20, 30))
     
     // Draw main container
     @components.draw_box(
@@ -149,58 +149,58 @@ pub fn run_components_showcase_demo() -> Unit {
     
     match tabs.get_selected_value() {
       "layout" => {
-        buffer.write_string(2, content_y, "FlexBox Demo:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y, "FlexBox Demo:", theme.get_style("heading").fg, Color::default())
         flexbox.set_position(2, content_y + 2)
         flexbox.set_size(width - 4, 5)
         flexbox.render(buffer)
         
-        buffer.write_string(2, content_y + 8, "Grid Demo:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y + 8, "Grid Demo:", theme.get_style("heading").fg, Color::default())
         grid.set_position(2, content_y + 10)
         grid.set_size(width - 4, 10)
         grid.render(buffer)
       }
       "input" => {
-        buffer.write_string(2, content_y, "TextInput:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y, "TextInput:", theme.get_style("heading").fg, Color::default())
         text_input.set_position(2, content_y + 2)
         text_input.set_size(width / 2, 1)
         text_input.render(buffer)
         
-        buffer.write_string(2, content_y + 4, "Select:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y + 4, "Select:", theme.get_style("heading").fg, Color::default())
         select.set_position(2, content_y + 6)
         select.set_size(width / 2, 10)
         select.render(buffer)
         
-        buffer.write_string(width / 2 + 2, content_y + 4, "Toggle:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(width / 2 + 2, content_y + 4, "Toggle:", theme.get_style("heading").fg, Color::default())
         toggle.set_position(width / 2 + 2, content_y + 6)
         toggle.render(buffer)
       }
       "display" => {
-        buffer.write_string(2, content_y, "Table:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y, "Table:", theme.get_style("heading").fg, Color::default())
         table.set_position(2, content_y + 2)
         table.set_size(width / 2 - 2, 8)
         table.render(buffer)
         
-        buffer.write_string(width / 2 + 1, content_y, "Tree:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(width / 2 + 1, content_y, "Tree:", theme.get_style("heading").fg, Color::default())
         tree.set_position(width / 2 + 1, content_y + 2)
         tree.set_size(width / 2 - 3, 8)
         tree.render(buffer)
         
-        buffer.write_string(2, content_y + 11, "List:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y + 11, "List:", theme.get_style("heading").fg, Color::default())
         list.set_position(2, content_y + 13)
         list.set_size(width - 4, 5)
         list.render(buffer)
       }
       "feedback" => {
-        buffer.write_string(2, content_y, "Progress Bar:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y, "Progress Bar:", theme.get_style("heading").fg, Color::default())
         progress.set_position(2, content_y + 2)
         progress.set_size(width - 4, 1)
         progress.render(buffer)
         
-        buffer.write_string(2, content_y + 4, "Spinner:", theme.get_style("heading").fg, @core.Color::default())
+        buffer.write_string(2, content_y + 4, "Spinner:", theme.get_style("heading").fg, Color::default())
         spinner.set_position(2, content_y + 6)
         spinner.render(buffer)
         
-        buffer.write_string(2, content_y + 8, "Press 'm' to show modal, 't' to show tooltip", theme.get_style("dim").fg, @core.Color::default())
+        buffer.write_string(2, content_y + 8, "Press 'm' to show modal, 't' to show tooltip", theme.get_style("dim").fg, Color::default())
         
         if tooltip.is_visible() {
           tooltip.render(buffer)
@@ -219,7 +219,7 @@ pub fn run_components_showcase_demo() -> Unit {
       2, height - 2,
       "Arrow keys: Navigate | Tab: Switch tabs | Space/Enter: Select | q: Quit",
       theme.get_style("dim").fg,
-      @core.Color::default()
+      Color::default()
     )
     
     // Render buffer to terminal

@@ -38,10 +38,10 @@ pub fn flatten_layout(view : View, bounds : Rect) -> Array[LayoutItem] {
       match root.get_child(0) {
         Some(n) => {
           let cb = Rect::new(
-            bounds.x + n.layout_left().to_int(),
-            bounds.y + n.layout_top().to_int(),
-            n.layout_width().to_int(),
-            n.layout_height().to_int(),
+            bounds.x + n.layout_left().to_double().to_int(),
+            bounds.y + n.layout_top().to_double().to_int(),
+            n.layout_width().to_double().to_int(),
+            n.layout_height().to_double().to_int(),
           )
           flatten_layout(v.child, cb)
         }
@@ -77,10 +77,10 @@ pub fn flatten_layout(view : View, bounds : Rect) -> Array[LayoutItem] {
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              bounds.x + n.layout_left().to_int(),
-              bounds.y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              bounds.x + n.layout_left().to_double().to_int(),
+              bounds.y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in flatten_layout(v.children[i], cb) { out.push(it) }
           }
@@ -117,10 +117,10 @@ pub fn flatten_layout(view : View, bounds : Rect) -> Array[LayoutItem] {
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              bounds.x + n.layout_left().to_int(),
-              bounds.y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              bounds.x + n.layout_left().to_double().to_int(),
+              bounds.y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in flatten_layout(v.children[i], cb) { out.push(it) }
           }
@@ -175,10 +175,10 @@ pub fn flatten_layout(view : View, bounds : Rect) -> Array[LayoutItem] {
         match root.get_child(i) {
           Some(n) => {
             let cb = Rect::new(
-              inner_x + n.layout_left().to_int(),
-              inner_y + n.layout_top().to_int(),
-              n.layout_width().to_int(),
-              n.layout_height().to_int(),
+              inner_x + n.layout_left().to_double().to_int(),
+              inner_y + n.layout_top().to_double().to_int(),
+              n.layout_width().to_double().to_int(),
+              n.layout_height().to_double().to_int(),
             )
             for it in flatten_layout(v.children[i], cb) { out.push(it) }
           }

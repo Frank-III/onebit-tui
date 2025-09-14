@@ -1,0 +1,130 @@
+///| Bridge between FFI Buffer and core TerminalBuffer
+///| Provides conversion and interop functionality
+
+// Convert FFI Buffer to core TerminalBuffer
+pub fn Buffer::to_terminal_buffer(self : Buffer) -> @core.TerminalBuffer {
+  let width = self.width.to_int()
+  let height = self.height.to_int()
+  let term_buffer = @core.TerminalBuffer::new(width, height)
+  
+  // Copy cells from FFI buffer to terminal buffer
+  for y = 0; y < height; y = y + 1 {
+    for x = 0; x < width; x = x + 1 {
+      // Get cell from FFI buffer
+      let char = self.get_char_at(x, y)
+      let fg = self.get_fg_at(x, y)
+      let bg = self.get_bg_at(x, y)
+      let attrs = self.get_attributes_at(x, y)
+      
+      // Convert and set in terminal buffer
+      if char != 0 {
+        let style = attrs_to_text_style(attrs)
+        term_buffer.write_char(x, y, char.to_char(), fg, bg, style)
+      }
+    }
+  }
+  
+  term_buffer
+}
+
+// Convert core TerminalBuffer to FFI Buffer
+pub fn TerminalBuffer::to_ffi_buffer(self : @core.TerminalBuffer, buffer : Buffer) -> Unit {
+  let width = self.width()
+  let height = self.height()
+  
+  for y = 0; y < height; y = y + 1 {
+    for x = 0; x < width; x = x + 1 {
+      match self.get_cell(x, y) {
+        Some(cell) => {
+          buffer.set_cell_at(
+            x.to_uint(),
+            y.to_uint(),
+            cell.char.to_int().to_uint(),
+            rgba_to_color(cell.fg_color),
+            rgba_to_color(cell.bg_color),
+            text_style_to_attrs(cell.style)
+          )
+        }
+        None => ()
+      }
+    }
+  }
+}
+
+// Helper: Convert attributes byte to TextStyle
+fn attrs_to_text_style(attrs : Byte) -> @core.TextStyle {
+  if attrs & 1 != 0 {
+    @core.TextStyle::Bold
+  } else if attrs & 2 != 0 {
+    @core.TextStyle::Italic
+  } else if attrs & 4 != 0 {
+    @core.TextStyle::Underline
+  } else {
+    @core.TextStyle::None
+  }
+}
+
+// Helper: Convert TextStyle to attributes byte
+fn text_style_to_attrs(style : @core.TextStyle) -> Byte {
+  match style {
+    @core.TextStyle::Bold => 1
+    @core.TextStyle::Italic => 2
+    @core.TextStyle::Underline => 4
+    @core.TextStyle::None => 0
+    _ => 0
+  }
+}
+
+// Helper: Convert RGBA to Color (FixedArray[Double])
+fn rgba_to_color(rgba : @core.RGBA) -> Color {
+  let color = FixedArray::make(4, 0.0)
+  color[0] = rgba.r
+  color[1] = rgba.g
+  color[2] = rgba.b
+  color[3] = rgba.a
+  color
+}
+
+// Helper: Convert Color to RGBA
+fn color_to_rgba(color : Color) -> @core.RGBA {
+  @core.RGBA::{
+    r: color[0],
+    g: color[1],
+    b: color[2],
+    a: color[3],
+  }
+}
+
+// Extension methods for Buffer to get cell data
+pub fn Buffer::get_char_at(self : Buffer, x : Int, y : Int) -> UInt {
+  // This would need actual FFI implementation
+  0  // Placeholder
+}
+
+pub fn Buffer::get_fg_at(self : Buffer, x : Int, y : Int) -> @core.RGBA {
+  // This would need actual FFI implementation
+  @core.RGBA::white()  // Placeholder
+}
+
+pub fn Buffer::get_bg_at(self : Buffer, x : Int, y : Int) -> @core.RGBA {
+  // This would need actual FFI implementation
+  @core.RGBA::black()  // Placeholder
+}
+
+pub fn Buffer::get_attributes_at(self : Buffer, x : Int, y : Int) -> Byte {
+  // This would need actual FFI implementation
+  0  // Placeholder
+}
+
+pub fn Buffer::set_cell_at(
+  self : Buffer,
+  x : UInt,
+  y : UInt,
+  char : UInt,
+  fg : Color,
+  bg : Color,
+  attrs : Byte
+) -> Unit {
+  // This would use the existing bufferSetCellWithAlphaBlending FFI
+  bufferSetCellMB(self.ptr, x, y, char, fg, bg, attrs)
+}

@@ -1,12 +1,4 @@
 {
-  "link": {
-    "native": {
-      "flags": [
-        "-Llib",
-        "-lopentui_ffi",
-        "-lopentui",
-        "-lterminal"
-      ]
-    }
-  }
+  "import": ["moonbit-community/onebit-yoga/wrapper", "moonbit-community/onebit-yoga/types"],
+  "warn-list": "-0001-0002-0004-0006-0008-0009-0013-0015-0019-0022"
 }

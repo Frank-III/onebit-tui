@@ -52,7 +52,7 @@ pub struct TableColumn[T] {
 }
 
 /// Get the base renderable
-pub fn[T] as_renderable(self : Table[T]) -> @core.BaseRenderable {
+pub fn[T] Table::as_renderable(self : Table[T]) -> @core.BaseRenderable {
   self.base
 }
 
@@ -119,7 +119,7 @@ pub fn[T] Table::set_bounds(self : Table[T], x : Int, y : Int, width : Int, heig
 }
 
 // Navigation
-pub fn Table::select_next_row[T](self : Table[T]) -> Unit {
+pub fn[T] Table::select_next_row(self : Table[T]) -> Unit {
   if self.selected_row < self.display_data.length() - 1 {
     self.selected_row = self.selected_row + 1
     // Check if we need to go to next page
@@ -130,7 +130,7 @@ pub fn Table::select_next_row[T](self : Table[T]) -> Unit {
   }
 }
 
-pub fn Table::select_previous_row[T](self : Table[T]) -> Unit {
+pub fn[T] Table::select_previous_row(self : Table[T]) -> Unit {
   if self.selected_row > 0 {
     self.selected_row = self.selected_row - 1
     // Check if we need to go to previous page
@@ -141,44 +141,44 @@ pub fn Table::select_previous_row[T](self : Table[T]) -> Unit {
   }
 }
 
-pub fn Table::select_next_column[T](self : Table[T]) -> Unit {
+pub fn[T] Table::select_next_column(self : Table[T]) -> Unit {
   if self.selected_column < self.columns.length() - 1 {
     self.selected_column = self.selected_column + 1
   }
 }
 
-pub fn Table::select_previous_column[T](self : Table[T]) -> Unit {
+pub fn[T] Table::select_previous_column(self : Table[T]) -> Unit {
   if self.selected_column > 0 {
     self.selected_column = self.selected_column - 1
   }
 }
 
-pub fn Table::next_page[T](self : Table[T]) -> Unit {
+pub fn[T] Table::next_page(self : Table[T]) -> Unit {
   let max_pages = (self.display_data.length() + self.rows_per_page - 1) / self.rows_per_page
   if self.current_page < max_pages - 1 {
     self.current_page = self.current_page + 1
   }
 }
 
-pub fn Table::previous_page[T](self : Table[T]) -> Unit {
+pub fn[T] Table::previous_page(self : Table[T]) -> Unit {
   if self.current_page > 0 {
     self.current_page = self.current_page - 1
   }
 }
 
-pub fn Table::first_page[T](self : Table[T]) -> Unit {
+pub fn[T] Table::first_page(self : Table[T]) -> Unit {
   self.current_page = 0
   self.selected_row = 0
 }
 
-pub fn Table::last_page[T](self : Table[T]) -> Unit {
+pub fn[T] Table::last_page(self : Table[T]) -> Unit {
   let max_pages = (self.display_data.length() + self.rows_per_page - 1) / self.rows_per_page
   self.current_page = max_pages - 1
   self.selected_row = self.display_data.length() - 1
 }
 
 // Sorting
-pub fn Table::sort_by_column[T](self : Table[T], column_index : Int) -> Unit {
+pub fn[T] Table::sort_by_column(self : Table[T], column_index : Int) -> Unit {
   if column_index < 0 || column_index >= self.columns.length() {
     return
   }
@@ -225,7 +225,7 @@ fn Table::apply_sort[T](self : Table[T]) -> Unit {
 }
 
 // Filtering
-pub fn Table::set_filter[T](self : Table[T], text : String, column_index? : Int) -> Unit {
+pub fn[T] Table::set_filter(self : Table[T], text : String, column_index? : Int) -> Unit {
   self.filter_text = text
   self.filter_column = column_index
   self.apply_filter()
@@ -235,7 +235,7 @@ pub fn Table::set_filter[T](self : Table[T], text : String, column_index? : Int)
   self.current_page = 0
 }
 
-pub fn Table::clear_filter[T](self : Table[T]) -> Unit {
+pub fn[T] Table::clear_filter(self : Table[T]) -> Unit {
   self.filter_text = ""
   self.filter_column = None
   self.apply_filter()
@@ -291,7 +291,7 @@ fn Table::update_display_data[T](self : Table[T]) -> Unit {
   self.display_data = self.filtered_data
 }
 
-pub fn Table::get_selected_item[T](self : Table[T]) -> Option[T] {
+pub fn[T] Table::get_selected_item(self : Table[T]) -> Option[T] {
   if self.selected_row >= 0 && self.selected_row < self.display_data.length() {
     Some(self.display_data[self.selected_row])
   } else {
@@ -299,7 +299,7 @@ pub fn Table::get_selected_item[T](self : Table[T]) -> Option[T] {
   }
 }
 
-pub fn Table::confirm_selection[T](self : Table[T]) -> Unit {
+pub fn[T] Table::confirm_selection(self : Table[T]) -> Unit {
   match self.get_selected_item() {
     Some(item) => {
       match self.on_select {
@@ -512,7 +512,7 @@ pub fn[T] Table::render(self : Table[T], buffer : @core.TerminalBuffer) -> Unit 
   }
   
   // Status bar
-  let status_y = self.bounds.y + self.bounds.height - border_offset - 1
+  let status_y = self.base.y + self.base.height - border_offset - 1
   let page_info = "Page " + (self.current_page + 1).to_string() + 
                   "/" + ((self.display_data.length() + self.rows_per_page - 1) / self.rows_per_page).to_string()
   let row_info = "Row " + (self.selected_row + 1).to_string() + "/" + self.display_data.length().to_string()

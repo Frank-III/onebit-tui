@@ -1,7 +1,7 @@
 // Animated Dashboard Demo - Showcasing real-time updates and animations
 
 fn main {
-  let mut app = @core.App::new()
+  let mut app = App::new()
   let animation_manager = @animation.AnimationManager::new()
   
   // Dashboard title with animated color
@@ -153,10 +153,10 @@ fn main {
   
   app.run(fn(event) {
     match event {
-      @core.Event::Key(key) => {
+      Event::Key(key) => {
         match key {
-          @core.Key::Char('q') => return false
-          @core.Key::Space => {
+          Key::Char('q') => return false
+          Key::Space => {
             if paused {
               timeline.play()
             } else {
@@ -164,13 +164,13 @@ fn main {
             }
             paused = not(paused)
           }
-          @core.Key::Tab => {
+          Key::Tab => {
             // Switch focus between components
           }
           _ => ()
         }
       }
-      @core.Event::Tick => {
+      Event::Tick => {
         // Update animations
         if not(paused) {
           animation_manager.update(frame * 16) // 60 FPS

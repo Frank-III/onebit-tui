@@ -1,0 +1,10 @@
+{
+  "import": [
+    "moonbit-community/onebit-tui/core",
+    "moonbit-community/onebit-tui/components",
+    "moonbit-community/onebit-tui/ffi",
+    "moonbit-community/onebit-yoga/wrapper",
+    "moonbit-community/onebit-yoga/types"
+  ],
+  "is_main": true
+}

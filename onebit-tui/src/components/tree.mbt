@@ -24,11 +24,11 @@ pub(all) struct Tree {
 pub fn TreeNode::new(
   id : String,
   label : String,
-  ~children : Array[TreeNode] = [],
-  ~expanded : Bool = false,
-  ~data : Option[Json] = None
+  children~: Array[TreeNode] = [],
+  expanded~: Bool = false,
+  data~: Option[Json] = None
 ) -> TreeNode {
-  TreeNode {
+  {
     id,
     label,
     children,
@@ -40,11 +40,11 @@ pub fn TreeNode::new(
 
 pub fn Tree::new(
   root_nodes : Array[TreeNode],
-  ~on_select : Option[(TreeNode) -> Unit] = None,
-  ~on_expand : Option[(TreeNode) -> Unit] = None,
-  ~show_icons : Bool = true
+  on_select~: Option[(TreeNode) -> Unit] = None,
+  on_expand~: Option[(TreeNode) -> Unit] = None,
+  show_icons~: Bool = true
 ) -> Tree {
-  Tree {
+  {
     root_nodes,
     selected_path: [0],
     focused: false,
@@ -98,32 +98,23 @@ fn get_node_at_path(self : Tree, path : Array[Int]) -> Option[TreeNode] {
   node
 }
 
-pub fn render(self : Tree, buffer : Buffer) -> Unit {
+pub fn Tree::render(self : Tree, buffer : @core.TerminalBuffer) -> Unit {
   let visible_nodes = self.get_visible_nodes()
   let mut y_offset = 0
   
-  // Clear selected state
-  for (node, _, _) in visible_nodes {
-    node.selected = false
-  }
-  
-  // Mark selected node
-  match self.get_node_at_path(self.selected_path) {
-    Some(node) => node.selected = true
-    None => ()
-  }
+  // Note: Selection is tracked by comparing paths in the render loop
   
   // Render visible nodes within viewport
   for i = self.scroll_offset; i < visible_nodes.length() && y_offset < self.height; i = i + 1 {
     let (node, depth, path) = visible_nodes[i]
-    let is_selected = node.selected
+    let is_selected = path == self.selected_path
     
-    let style = if is_selected && self.focused {
-      buffer.theme.get_style("focus")
+    let (fg_color, bg_color) = if is_selected && self.focused {
+      (@core.RGBA::white(), @core.RGBA::blue())
     } else if is_selected {
-      buffer.theme.get_style("selected")
+      (@core.RGBA::white(), @core.RGBA::gray())
     } else {
-      buffer.theme.get_style("normal")
+      (@core.RGBA::white(), @core.RGBA::black())
     }
     
     // Draw indentation
@@ -134,8 +125,9 @@ pub fn render(self : Tree, buffer : Buffer) -> Unit {
       self.width,
       1,
       ' ',
-      style.fg,
-      style.bg
+      fg_color,
+      bg_color,
+      @core.TextStyle::None
     )
     
     // Draw tree lines
@@ -144,8 +136,9 @@ pub fn render(self : Tree, buffer : Buffer) -> Unit {
         self.x + j * 2,
         self.y + y_offset,
         "│ ",
-        buffer.theme.get_style("border").fg,
-        style.bg
+        @core.RGBA::gray(),
+        bg_color,
+        @core.TextStyle::None
       )
     }
     
@@ -156,24 +149,32 @@ pub fn render(self : Tree, buffer : Buffer) -> Unit {
         self.x + indent,
         self.y + y_offset,
         icon,
-        style.fg,
-        style.bg
+        fg_color,
+        bg_color,
+        @core.TextStyle::None
       )
     } else if self.show_icons {
       buffer.write_string(
         self.x + indent,
         self.y + y_offset,
         "  ",
-        style.fg,
-        style.bg
+        fg_color,
+        bg_color,
+        @core.TextStyle::None
       )
     }
     
     // Draw label
     let label_x = self.x + indent + (if self.show_icons { 2 } else { 0 })
     let max_label_width = self.width - (label_x - self.x)
-    let truncated_label = if node.label.length() > max_label_width {
-      node.label.substring(0, max_label_width - 3) + "..."
+    let truncated_label = if node.label.length() > max_label_width && max_label_width > 3 {
+      // Use substring method if available, or manually truncate
+      let end = if max_label_width - 3 < node.label.length() { max_label_width - 3 } else { node.label.length() }
+      let mut result = ""
+      for i = 0; i < end; i = i + 1 {
+        result = result + node.label[i].to_string()
+      }
+      result + "..."
     } else {
       node.label
     }
@@ -182,8 +183,9 @@ pub fn render(self : Tree, buffer : Buffer) -> Unit {
       label_x,
       self.y + y_offset,
       truncated_label,
-      style.fg,
-      style.bg
+      fg_color,
+      bg_color,
+      @core.TextStyle::None
     )
     
     y_offset += 1
@@ -195,7 +197,8 @@ fn find_prev_visible_node(self : Tree, current_path : Array[Int]) -> Option[Arra
   let mut current_index = -1
   
   // Find current node index in visible nodes
-  for i, (_, _, path) in visible_nodes {
+  for i, item in visible_nodes {
+    let (_, _, path) = item
     let mut same = true
     if path.length() == current_path.length() {
       for j, p in path {
@@ -224,7 +227,8 @@ fn find_next_visible_node(self : Tree, current_path : Array[Int]) -> Option[Arra
   let mut current_index = -1
   
   // Find current node index in visible nodes
-  for i, (_, _, path) in visible_nodes {
+  for i, item in visible_nodes {
+    let (_, _, path) = item
     let mut same = true
     if path.length() == current_path.length() {
       for j, p in path {
@@ -248,7 +252,7 @@ fn find_next_visible_node(self : Tree, current_path : Array[Int]) -> Option[Arra
   }
 }
 
-pub fn handle_key(self : Tree, key : String) -> Bool {
+pub fn Tree::handle_key(self : Tree, key : String) -> Bool {
   if not(self.focused) {
     return false
   }
@@ -296,7 +300,7 @@ pub fn handle_key(self : Tree, key : String) -> Bool {
             node.expanded = false
           } else if self.selected_path.length() > 1 {
             // Move to parent
-            self.selected_path = self.selected_path.take(self.selected_path.length() - 1)
+            self.selected_path = self.selected_path[0:self.selected_path.length() - 1].to_array()
             self.ensure_visible()
           }
         }
@@ -320,8 +324,8 @@ pub fn handle_key(self : Tree, key : String) -> Bool {
   }
 }
 
-pub fn handle_mouse(self : Tree, event : MouseEvent) -> Bool {
-  if event.button != MouseButton::Left {
+pub fn Tree::handle_mouse(self : Tree, event : @core.MouseEvent) -> Bool {
+  if event.button != 0 {  // 0 = left button
     return false
   }
   
@@ -363,8 +367,9 @@ fn ensure_visible(self : Tree) -> Unit {
   let mut selected_index = -1
   
   // Find selected node index
-  for i, (node, _, _) in visible_nodes {
-    if node.selected {
+  for i, item in visible_nodes {
+    let (_, _, path) = item
+    if path == self.selected_path {
       selected_index = i
       break
     }

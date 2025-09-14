@@ -1,7 +1,7 @@
 // Theme Switcher Demo - Showcasing theming capabilities
 
 fn main {
-  let mut app = @core.App::new()
+  let mut app = App::new()
   let theme_manager = @theming.ThemeManager::new()
   
   // Title
@@ -80,16 +80,16 @@ fn main {
   // Run the app
   app.run(fn(event) {
     match event {
-      @core.Event::Key(key) => {
+      Event::Key(key) => {
         match key {
-          @core.Key::Char('q') => return false
-          @core.Key::Up => {
+          Key::Char('q') => return false
+          Key::Up => {
             theme_list.select_previous()
           }
-          @core.Key::Down => {
+          Key::Down => {
             theme_list.select_next()
           }
-          @core.Key::Enter => {
+          Key::Enter => {
             match theme_list.get_selected_index() {
               0 => theme_manager.set_theme("default")
               1 => theme_manager.set_theme("light")
@@ -100,7 +100,7 @@ fn main {
             update_palette_display()
             // In real implementation, would update all components with new theme
           }
-          @core.Key::Char('c') => {
+          Key::Char('c') => {
             // Show custom theme creator
             show_custom_theme_creator()
           }
@@ -113,7 +113,7 @@ fn main {
   })
 }
 
-fn color_to_string(color : @core.RGBA) -> String {
+fn color_to_string(color : RGBA) -> String {
   "RGB(" + (color.r * 255.0).to_int().to_string() + ", " +
           (color.g * 255.0).to_int().to_string() + ", " +
           (color.b * 255.0).to_int().to_string() + ")"

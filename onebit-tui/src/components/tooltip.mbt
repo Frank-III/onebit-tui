@@ -1,12 +1,12 @@
 pub(all) struct Tooltip {
-  text : String
+  mut text : String
   mut visible : Bool
   mut x : Int
   mut y : Int
   mut width : Int
   mut height : Int
-  position : TooltipPosition
-  max_width : Int
+  mut position : TooltipPosition
+  mut max_width : Int
 }
 
 pub(all) enum TooltipPosition {
@@ -18,10 +18,10 @@ pub(all) enum TooltipPosition {
 
 pub fn Tooltip::new(
   text : String,
-  ~position : TooltipPosition = TooltipPosition::Above,
-  ~max_width : Int = 40
+  position~: TooltipPosition = TooltipPosition::Above,
+  max_width~: Int = 40
 ) -> Tooltip {
-  let lines = text.split('\n')
+  let lines = text.split("\n").to_array()
   let mut width = 0
   for line in lines {
     if line.length() > width {
@@ -38,7 +38,7 @@ pub fn Tooltip::new(
   width += 2
   let height = lines.length() + 2 // +2 for border
   
-  Tooltip {
+  {
     text,
     visible: false,
     x: 0,
@@ -50,7 +50,7 @@ pub fn Tooltip::new(
   }
 }
 
-pub fn render(self : Tooltip, buffer : Buffer) -> Unit {
+pub fn Tooltip::render(self : Tooltip, buffer : @core.TerminalBuffer) -> Unit {
   if not(self.visible) {
     return
   }
@@ -73,19 +73,24 @@ pub fn render(self : Tooltip, buffer : Buffer) -> Unit {
     draw_y = 0
   }
   
-  let style = buffer.theme.get_style("tooltip")
-  let border_style = buffer.theme.get_style("tooltipBorder")
+  let fg_color = @core.RGBA::black()
+  let bg_color = @core.RGBA::yellow()
+  let border_color = @core.RGBA::gray()
   
-  // Draw tooltip box
-  buffer.draw_box(
-    draw_x,
-    draw_y,
-    self.width,
-    self.height,
-    ~style = BoxStyle::Single,
-    ~fg = border_style.fg,
-    ~bg = style.bg
-  )
+  // Draw tooltip box manually
+  // Fill background
+  buffer.fill_rect(draw_x, draw_y, self.width, self.height, ' ', fg_color, bg_color, @core.TextStyle::None)
+  
+  // Draw borders
+  // Top border
+  buffer.write_string(draw_x, draw_y, "┌" + String::repeat("─", self.width - 2) + "┐", border_color, bg_color, @core.TextStyle::None)
+  // Bottom border  
+  buffer.write_string(draw_x, draw_y + self.height - 1, "└" + String::repeat("─", self.width - 2) + "┘", border_color, bg_color, @core.TextStyle::None)
+  // Left and right borders
+  for j = 1; j < self.height - 1; j = j + 1 {
+    buffer.write_char(draw_x, draw_y + j, '│', border_color, bg_color, @core.TextStyle::None)
+    buffer.write_char(draw_x + self.width - 1, draw_y + j, '│', border_color, bg_color, @core.TextStyle::None)
+  }
   
   // Draw text with word wrapping
   let lines = self.wrap_text(self.text, self.width - 2)
@@ -98,8 +103,9 @@ pub fn render(self : Tooltip, buffer : Buffer) -> Unit {
         self.width - 2,
         1,
         ' ',
-        style.fg,
-        style.bg
+        fg_color,
+        bg_color,
+        @core.TextStyle::None
       )
       
       // Draw the text
@@ -107,8 +113,9 @@ pub fn render(self : Tooltip, buffer : Buffer) -> Unit {
         draw_x + 1,
         draw_y + 1 + i,
         line,
-        style.fg,
-        style.bg
+        fg_color,
+        bg_color,
+        @core.TextStyle::None
       )
     }
   }
@@ -116,17 +123,18 @@ pub fn render(self : Tooltip, buffer : Buffer) -> Unit {
 
 fn wrap_text(self : Tooltip, text : String, max_width : Int) -> Array[String] {
   let mut lines = []
-  let words = text.split(' ')
+  let words = text.split(" ")
   let mut current_line = ""
   
   for word in words {
+    let word_str = word.to_string()
     if current_line.length() == 0 {
-      current_line = word
-    } else if current_line.length() + 1 + word.length() <= max_width {
-      current_line = current_line + " " + word
+      current_line = word_str
+    } else if current_line.length() + 1 + word_str.length() <= max_width {
+      current_line = current_line + " " + word_str
     } else {
       lines.push(current_line)
-      current_line = word
+      current_line = word_str
     }
   }
   
@@ -144,7 +152,12 @@ fn wrap_text(self : Tooltip, text : String, max_width : Int) -> Array[String] {
       let mut i = 0
       while i < line.length() {
         let end = if i + max_width < line.length() { i + max_width } else { line.length() }
-        wrapped_lines.push(line.substring(i, end))
+        // Build substring manually to avoid error
+        let mut substr = ""
+        for j = i; j < end; j = j + 1 {
+          substr = substr + line[j].to_string()
+        }
+        wrapped_lines.push(substr)
         i = end
       }
     }
@@ -153,7 +166,7 @@ fn wrap_text(self : Tooltip, text : String, max_width : Int) -> Array[String] {
   wrapped_lines
 }
 
-pub fn show_at(self : Tooltip, target_x : Int, target_y : Int, target_width : Int, target_height : Int) -> Unit {
+pub fn Tooltip::show_at(self : Tooltip, target_x : Int, target_y : Int, target_width : Int, target_height : Int) -> Unit {
   // Calculate position based on tooltip position and target
   match self.position {
     TooltipPosition::Above => {
@@ -177,15 +190,15 @@ pub fn show_at(self : Tooltip, target_x : Int, target_y : Int, target_width : In
   self.visible = true
 }
 
-pub fn hide(self : Tooltip) -> Unit {
+pub fn Tooltip::hide(self : Tooltip) -> Unit {
   self.visible = false
 }
 
-pub fn set_text(self : Tooltip, text : String) -> Unit {
+pub fn Tooltip::set_text(self : Tooltip, text : String) -> Unit {
   self.text = text
   
   // Recalculate dimensions
-  let lines = text.split('\n')
+  let lines = text.split("\n").to_array()
   let mut width = 0
   for line in lines {
     if line.length() > width {
@@ -201,6 +214,6 @@ pub fn set_text(self : Tooltip, text : String) -> Unit {
   self.height = lines.length() + 2
 }
 
-pub fn is_visible(self : Tooltip) -> Bool {
+pub fn Tooltip::is_visible(self : Tooltip) -> Bool {
   self.visible
 }

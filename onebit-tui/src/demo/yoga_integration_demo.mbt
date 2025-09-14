@@ -11,8 +11,8 @@ fn main() -> Unit {
   let (width, height) = terminal.get_size()
   
   // Create buffer
-  let buffer = @core.Buffer::new(width, height)
-  let theme = @core.Theme::default()
+  let buffer = Buffer::new(width, height)
+  let theme = Theme::default()
   buffer.theme = theme
   
   // Initialize Yoga
@@ -70,8 +70,8 @@ fn main() -> Unit {
   // Header
   let header_layout = header_yoga.get_layout()
   let header_box = @components.Box::new("header")
-    .with_border_style(@core.BorderStyle::Double)
-    .with_border_color(@core.Color::cyan())
+    .with_border_style(BorderStyle::Double)
+    .with_border_color(Color::cyan())
     .with_title("OneBit-TUI + Yoga Flexbox Layout")
     .with_dimensions(
       header_layout.left.to_int(),
@@ -81,8 +81,8 @@ fn main() -> Unit {
     )
   
   let header_text = @components.Text::new("header-text", "Responsive layout powered by Yoga")
-    .with_align(@core.TextAlign::Center)
-    .with_foreground_color(@core.Color::yellow())
+    .with_align(TextAlign::Center)
+    .with_foreground_color(Color::yellow())
     .with_dimensions(2, 1, header_box.base.width - 4, 1)
   
   header_box.add_child(header_text.as_renderable())
@@ -90,7 +90,7 @@ fn main() -> Unit {
   // Left panel - List component
   let left_layout = left_yoga.get_layout()
   let left_box = @components.Box::new("left-panel")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_title("Navigation")
     .with_dimensions(
       left_layout.left.to_int(),
@@ -113,7 +113,7 @@ fn main() -> Unit {
   // Center panel - Content area
   let center_layout = center_yoga.get_layout()
   let center_box = @components.Box::new("center-panel")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_title("Content")
     .with_dimensions(
       center_layout.left.to_int(),
@@ -129,8 +129,8 @@ fn main() -> Unit {
     "• Main area uses flex-grow to fill space\n" +
     "• Three columns share width equally\n\n" +
     "Try resizing your terminal!")
-    .with_wrap(@core.TextWrap::Word)
-    .with_foreground_color(@core.Color::white())
+    .with_wrap(TextWrap::Word)
+    .with_foreground_color(Color::white())
     .with_dimensions(2, 2, center_box.base.width - 4, center_box.base.height - 4)
   
   center_box.add_child(content_text.as_renderable())
@@ -138,7 +138,7 @@ fn main() -> Unit {
   // Right panel - Status/Info
   let right_layout = right_yoga.get_layout()
   let right_box = @components.Box::new("right-panel")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_title("Status")
     .with_dimensions(
       right_layout.left.to_int(),
@@ -151,15 +151,15 @@ fn main() -> Unit {
     .with_dimensions(2, 2, right_box.base.width - 4, right_box.base.height - 4)
   
   let term_size = @components.Text::new("term-size", "Terminal: \{width}x\{height}")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(0, 0, status_group.base.width, 1)
   
   let layout_info = @components.Text::new("layout-info", "Layout: Flexbox")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(0, 2, status_group.base.width, 1)
   
   let frame_counter = @components.Text::new("frame", "Frame: 0")
-    .with_foreground_color(@core.Color::green())
+    .with_foreground_color(Color::green())
     .with_dimensions(0, 4, status_group.base.width, 1)
   
   status_group.add_child(term_size.as_renderable())
@@ -171,7 +171,7 @@ fn main() -> Unit {
   // Footer
   let footer_layout = footer_yoga.get_layout()
   let footer_box = @components.Box::new("footer")
-    .with_border_style(@core.BorderStyle::Single)
+    .with_border_style(BorderStyle::Single)
     .with_dimensions(
       footer_layout.left.to_int(),
       footer_layout.top.to_int(),
@@ -180,8 +180,8 @@ fn main() -> Unit {
     )
   
   let footer_text = @components.Text::new("footer-text", "Press 'q' to quit | Use arrows to navigate")
-    .with_align(@core.TextAlign::Center)
-    .with_foreground_color(@core.Color::white())
+    .with_align(TextAlign::Center)
+    .with_foreground_color(Color::white())
     .with_dimensions(2, 0, footer_box.base.width - 4, 1)
   
   footer_box.add_child(footer_text.as_renderable())
@@ -259,7 +259,7 @@ fn main() -> Unit {
     frame_counter.set_content("Frame: \{frame}")
     
     // Clear and render
-    buffer.clear(@core.Color::rgb(10, 10, 20))
+    buffer.clear(Color::rgb(10, 10, 20))
     root_group.as_renderable().render(buffer)
     terminal.render_buffer(buffer)
     

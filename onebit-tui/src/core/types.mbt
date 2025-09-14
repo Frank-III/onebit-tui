@@ -184,6 +184,11 @@ pub fn RGBA::rgb(r : Double, g : Double, b : Double) -> RGBA {
   { r, g, b, a: 1.0 }
 }
 
+///| Default transparent RGBA
+pub fn RGBA::default() -> RGBA {
+  { r: 0.0, g: 0.0, b: 0.0, a: 0.0 }
+}
+
 ///| Text alignment options
 pub(all) enum TextAlign {
   Left
@@ -318,12 +323,12 @@ pub fn hex_to_rgba(hex : String) -> RGBA {
 
 ///| Convert RGBA colors to ANSI escape codes
 pub fn rgba_to_ansi(fg : RGBA, bg : RGBA) -> String {
-  let fg_r = (fg.r * 255.0).to_int()
-  let fg_g = (fg.g * 255.0).to_int()
-  let fg_b = (fg.b * 255.0).to_int()
-  let bg_r = (bg.r * 255.0).to_int()
-  let bg_g = (bg.g * 255.0).to_int()
-  let bg_b = (bg.b * 255.0).to_int()
+  let fg_r = (fg.r * 255.0).to_double().to_int()
+  let fg_g = (fg.g * 255.0).to_double().to_int()
+  let fg_b = (fg.b * 255.0).to_double().to_int()
+  let bg_r = (bg.r * 255.0).to_double().to_int()
+  let bg_g = (bg.g * 255.0).to_double().to_int()
+  let bg_b = (bg.b * 255.0).to_double().to_int()
 
   // 24-bit color ANSI escape codes
   let fg_code = "\u001b[38;2;\{fg_r};\{fg_g};\{fg_b}m"

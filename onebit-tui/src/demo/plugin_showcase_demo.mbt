@@ -1,7 +1,7 @@
 // Plugin Showcase Demo - Demonstrating the plugin system
 
 fn main {
-  let mut app = @core.App::new()
+  let mut app = App::new()
   let theme_manager = @theming.ThemeManager::new()
   let plugin_manager = @plugins.PluginManager::new(theme_manager)
   
@@ -114,18 +114,18 @@ fn main {
   // Run the app
   app.run(fn(event) {
     match event {
-      @core.Event::Key(key) => {
+      Event::Key(key) => {
         match key {
-          @core.Key::Char('q') => return false
-          @core.Key::Up => {
+          Key::Char('q') => return false
+          Key::Up => {
             plugin_list.select_previous()
             update_details(plugin_list.get_selected_index())
           }
-          @core.Key::Down => {
+          Key::Down => {
             plugin_list.select_next()
             update_details(plugin_list.get_selected_index())
           }
-          @core.Key::Enter => {
+          Key::Enter => {
             let index = plugin_list.get_selected_index()
             plugin_states[index] = not(plugin_states[index])
             
@@ -137,16 +137,16 @@ fn main {
             }
             update_details(index)
           }
-          @core.Key::Char('i') => {
+          Key::Char('i') => {
             let index = plugin_list.get_selected_index()
             println("Installing plugin: " + plugin_items[index])
           }
-          @core.Key::Char('u') => {
+          Key::Char('u') => {
             let index = plugin_list.get_selected_index()
             println("Uninstalling plugin: " + plugin_items[index])
             plugin_states[index] = false
           }
-          @core.Key::Char('r') => {
+          Key::Char('r') => {
             println("Reloading plugins...")
           }
           _ => ()
@@ -161,24 +161,24 @@ fn main {
 // Helper functions to create sample themes
 fn create_ocean_theme() -> @theming.Theme {
   let theme = @theming.Theme::default()
-  theme.colors.primary = @core.RGBA::from_hex("#006994")
-  theme.colors.secondary = @core.RGBA::from_hex("#00A8E8")
-  theme.colors.background = @core.RGBA::from_hex("#003459")
+  theme.colors.primary = RGBA::from_hex("#006994")
+  theme.colors.secondary = RGBA::from_hex("#00A8E8")
+  theme.colors.background = RGBA::from_hex("#003459")
   theme
 }
 
 fn create_forest_theme() -> @theming.Theme {
   let theme = @theming.Theme::default()
-  theme.colors.primary = @core.RGBA::from_hex("#2D5016")
-  theme.colors.secondary = @core.RGBA::from_hex("#73A942")
-  theme.colors.background = @core.RGBA::from_hex("#1C3409")
+  theme.colors.primary = RGBA::from_hex("#2D5016")
+  theme.colors.secondary = RGBA::from_hex("#73A942")
+  theme.colors.background = RGBA::from_hex("#1C3409")
   theme
 }
 
 fn create_sunset_theme() -> @theming.Theme {
   let theme = @theming.Theme::default()
-  theme.colors.primary = @core.RGBA::from_hex("#F07167")
-  theme.colors.secondary = @core.RGBA::from_hex("#FED9B7")
-  theme.colors.background = @core.RGBA::from_hex("#300A0A")
+  theme.colors.primary = RGBA::from_hex("#F07167")
+  theme.colors.secondary = RGBA::from_hex("#FED9B7")
+  theme.colors.background = RGBA::from_hex("#300A0A")
   theme
 }

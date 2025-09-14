@@ -31,7 +31,7 @@ pub(all) struct List {
 }
 
 /// Get the base renderable
-pub fn as_renderable(self : List) -> @core.BaseRenderable {
+pub fn List::as_renderable(self : List) -> @core.BaseRenderable {
   self.base
 }
 
@@ -295,7 +295,7 @@ pub fn List::render(self : List, buffer : @core.TerminalBuffer) -> Unit {
       if is_selected {
         self.selected_bg_color
       } else {
-        self.background_color
+        @core.RGBA::default()  // Use default background
       },
       @core.TextStyle::None,
     )
