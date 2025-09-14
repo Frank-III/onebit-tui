@@ -1,5 +1,6 @@
-import { Renderable, type RenderableOptions } from "../../Renderable"
+import { isRenderable, Renderable, type RenderableOptions } from "../../Renderable"
 import type { RenderContext } from "../../types"
+import util from "node:util"
 
 export type VChild = VNode | Renderable | VChild[] | null | undefined | false
 
@@ -9,8 +10,10 @@ export interface PendingCall {
   isProperty?: boolean
 }
 
+const BrandedVNode: unique symbol = Symbol.for("@opentui/core/VNode")
+
 export interface VNode<P = any, C = VChild[]> {
-  __isVNode: true
+  [BrandedVNode]: true
   type: Construct<P>
   props?: P
   children?: C
@@ -69,7 +72,7 @@ export function h<P>(type: Construct<P>, props?: P, ...children: VChild[]): any 
   }
 
   const vnode: VNode<P> = {
-    __isVNode: true,
+    [BrandedVNode]: true,
     type,
     props,
     children: flattenChildren(children),
@@ -127,12 +130,19 @@ export function h<P>(type: Construct<P>, props?: P, ...children: VChild[]): any 
 }
 
 export function isVNode(node: any): node is VNode {
-  return node && node.__isVNode
+  return node && node[BrandedVNode]
 }
 
-export function ensureRenderable(ctx: RenderContext, node: Renderable | VNode<any, any[]>): Renderable {
-  if (node instanceof Renderable) return node
-  return instantiate(ctx, node)
+export function maybeMakeRenderable(
+  ctx: RenderContext,
+  node: Renderable | VNode<any, any[]> | unknown,
+): Renderable | null {
+  if (isRenderable(node)) return node
+  if (isVNode(node)) return instantiate(ctx, node)
+  if (process.env.NODE_ENV !== "production") {
+    console.warn("maybeMakeRenderable received an invalid node", util.inspect(node, { depth: 2 }))
+  }
+  return null
 }
 
 export function wrapWithDelegates<T extends InstanceType<RenderableConstructor>>(
@@ -190,7 +200,7 @@ export function instantiate<NodeType extends VNode | Renderable>(
   ctx: RenderContext,
   node: NodeType,
 ): InstantiateFn<NodeType> {
-  if (node instanceof Renderable) return node
+  if (isRenderable(node)) return node
 
   if (!node || typeof node !== "object") {
     throw new TypeError("mount() received an invalid vnode")
@@ -205,7 +215,7 @@ export function instantiate<NodeType extends VNode | Renderable>(
     const instance = new type(ctx, (props || {}) as any)
 
     for (const child of children) {
-      if (child instanceof Renderable) {
+      if (isRenderable(child)) {
         instance.add(child)
       } else {
         const mounted = instantiate(ctx, child as NodeType)
@@ -270,7 +280,7 @@ export function delegate<NodeType extends VNode | Renderable | InstantiateFn<any
   mapping: Record<string, string>,
   vnode: NodeType,
 ): VNode | Renderable {
-  if (vnode instanceof Renderable) {
+  if (isRenderable(vnode)) {
     return wrapWithDelegates(vnode, mapping)
   }
   if (!vnode || typeof vnode !== "object") return vnode

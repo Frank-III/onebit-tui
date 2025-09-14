@@ -1,12 +1,12 @@
-import type { CliRenderer, ColorInput } from "."
 import { EventEmitter } from "events"
-import { OptimizedBuffer } from "./buffer"
-import { parseColor, RGBA } from "./lib/RGBA"
 import { Console } from "node:console"
-import util from "node:util"
 import fs from "node:fs"
 import path from "node:path"
+import util from "node:util"
+import type { CliRenderer, ColorInput } from "."
+import { OptimizedBuffer } from "./buffer"
 import { Capture, CapturedWritableStream } from "./lib/output.capture"
+import { parseColor, RGBA } from "./lib/RGBA"
 import { singleton } from "./singleton"
 
 interface CallerInfo {
@@ -47,35 +47,9 @@ enum LogLevel {
   DEBUG = "DEBUG",
 }
 
-export const { capture } = singleton("ConsoleCapture", () => {
-  const capture = new Capture()
-  const mockStdout = new CapturedWritableStream("stdout", capture)
-  const mockStderr = new CapturedWritableStream("stderr", capture)
-
-  if (process.env.SKIP_CONSOLE_CACHE !== "true") {
-    global.console = new Console({
-      stdout: mockStdout,
-      stderr: mockStderr,
-      colorMode: true,
-      inspectOptions: {
-        compact: false,
-        breakLength: 80,
-        depth: 2,
-      },
-    })
-  }
-
-  return { capture }
-})
+export const capture = singleton("ConsoleCapture", () => new Capture())
 
 class TerminalConsoleCache extends EventEmitter {
-  private originalConsole: {
-    log: typeof console.log
-    info: typeof console.info
-    warn: typeof console.warn
-    error: typeof console.error
-    debug: typeof console.debug
-  }
   private _cachedLogs: [Date, LogLevel, any[], CallerInfo | null][] = []
   private readonly MAX_CACHE_SIZE = 1000
   private _collectCallerInfo: boolean = false
@@ -88,41 +62,31 @@ class TerminalConsoleCache extends EventEmitter {
   constructor() {
     super()
 
-    this.originalConsole = {
-      log: console.log,
-      info: console.info,
-      warn: console.warn,
-      error: console.error,
-      debug: console.debug,
-    }
-
-    if (process.env.SKIP_CONSOLE_CACHE !== "true") {
-      this.activate()
-    }
+    // Note: Console activation will be handled by the renderer when needed
+    // Don't activate on import to avoid hiding console.log globally
   }
 
   public activate(): void {
+    this.setupConsoleCapture()
     this.overrideConsoleMethods()
   }
 
-  public setCollectCallerInfo(enabled: boolean): void {
-    this._collectCallerInfo = enabled
-  }
+  private setupConsoleCapture(): void {
+    if (process.env.OTUI_USE_CONSOLE === "false") return
 
-  public clearConsole(): void {
-    this._cachedLogs = []
-  }
+    const mockStdout = new CapturedWritableStream("stdout", capture)
+    const mockStderr = new CapturedWritableStream("stderr", capture)
 
-  public setCachingEnabled(enabled: boolean): void {
-    this._cachingEnabled = enabled
-  }
-
-  public deactivate(): void {
-    console.log = this.originalConsole.log
-    console.info = this.originalConsole.info
-    console.warn = this.originalConsole.warn
-    console.error = this.originalConsole.error
-    console.debug = this.originalConsole.debug
+    global.console = new Console({
+      stdout: mockStdout,
+      stderr: mockStderr,
+      colorMode: true,
+      inspectOptions: {
+        compact: false,
+        breakLength: 80,
+        depth: 2,
+      },
+    })
   }
 
   private overrideConsoleMethods(): void {
@@ -145,6 +109,31 @@ class TerminalConsoleCache extends EventEmitter {
     console.debug = (...args: any[]) => {
       this.appendToConsole(LogLevel.DEBUG, ...args)
     }
+  }
+
+  public setCollectCallerInfo(enabled: boolean): void {
+    this._collectCallerInfo = enabled
+  }
+
+  public clearConsole(): void {
+    this._cachedLogs = []
+  }
+
+  public setCachingEnabled(enabled: boolean): void {
+    this._cachingEnabled = enabled
+  }
+
+  public deactivate(): void {
+    this.restoreOriginalConsole()
+  }
+
+  private restoreOriginalConsole(): void {
+    // Restore to the original console object
+    const originalNodeConsole = require("node:console")
+    global.console = originalNodeConsole
+
+    // Restore console capture after restoring the original console
+    this.setupConsoleCapture()
   }
 
   public addLogEntry(level: LogLevel, ...args: any[]) {
@@ -563,6 +552,7 @@ export class TerminalConsole extends EventEmitter {
       if (!this.frameBuffer) {
         this.frameBuffer = OptimizedBuffer.create(this.consoleWidth, this.consoleHeight, this.renderer.widthMethod, {
           respectAlpha: this.backgroundColor.a < 1,
+          id: "console framebuffer",
         })
       }
       const logCount = terminalConsoleCache.cachedLogs.length

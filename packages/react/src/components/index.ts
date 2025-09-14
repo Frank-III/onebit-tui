@@ -2,19 +2,37 @@ import {
   ASCIIFontRenderable,
   BoxRenderable,
   InputRenderable,
+  ScrollBoxRenderable,
   SelectRenderable,
   TabSelectRenderable,
   TextRenderable,
 } from "@opentui/core"
 import type { RenderableConstructor } from "../types/components"
+import {
+  BoldSpanRenderable,
+  ItalicSpanRenderable,
+  LineBreakRenderable,
+  SpanRenderable,
+  UnderlineSpanRenderable,
+} from "./text"
 
 export const baseComponents = {
   box: BoxRenderable,
   text: TextRenderable,
   input: InputRenderable,
   select: SelectRenderable,
+  scrollbox: ScrollBoxRenderable,
   "ascii-font": ASCIIFontRenderable,
   "tab-select": TabSelectRenderable,
+
+  // Text modifiers
+  span: SpanRenderable,
+  br: LineBreakRenderable,
+  b: BoldSpanRenderable,
+  strong: BoldSpanRenderable,
+  i: ItalicSpanRenderable,
+  em: ItalicSpanRenderable,
+  u: UnderlineSpanRenderable,
 }
 
 type ComponentCatalogue = Record<string, RenderableConstructor>

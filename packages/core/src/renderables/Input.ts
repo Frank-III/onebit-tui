@@ -24,7 +24,7 @@ export enum InputRenderableEvents {
 }
 
 export class InputRenderable extends Renderable {
-  protected focusable: boolean = true
+  protected _focusable: boolean = true
 
   private _value: string = ""
   private _cursorPosition: number = 0
@@ -175,6 +175,10 @@ export class InputRenderable extends Renderable {
       this._placeholder = placeholder
       this.requestRender()
     }
+  }
+
+  public get cursorPosition(): number {
+    return this._cursorPosition
   }
 
   public set cursorPosition(position: number) {
@@ -343,9 +347,5 @@ export class InputRenderable extends Renderable {
     if (this._focused) {
       this._ctx.setCursorPosition(0, 0, false)
     }
-  }
-
-  protected destroySelf(): void {
-    super.destroySelf()
   }
 }

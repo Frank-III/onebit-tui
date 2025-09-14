@@ -17,6 +17,7 @@ export class FrameBufferRenderable extends Renderable {
     this.respectAlpha = options.respectAlpha || false
     this.frameBuffer = OptimizedBuffer.create(options.width, options.height, this._ctx.widthMethod, {
       respectAlpha: this.respectAlpha,
+      id: options.id || `framebufferrenderable-${this.id}`,
     })
   }
 
@@ -31,7 +32,7 @@ export class FrameBufferRenderable extends Renderable {
   }
 
   protected renderSelf(buffer: OptimizedBuffer): void {
-    if (!this.visible) return
+    if (!this.visible || this.isDestroyed) return
     buffer.drawFrameBuffer(this.x, this.y, this.frameBuffer)
   }
 

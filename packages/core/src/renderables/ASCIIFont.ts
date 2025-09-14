@@ -1,5 +1,10 @@
 import type { RenderableOptions } from "../Renderable"
-import { ASCIIFontSelectionHelper } from "../lib/selection"
+import {
+  ASCIIFontSelectionHelper,
+  convertGlobalToLocalSelection,
+  Selection,
+  type LocalSelectionBounds,
+} from "../lib/selection"
 import {
   type fonts,
   measureText,
@@ -9,7 +14,7 @@ import {
 } from "../lib/ascii.font"
 import { RGBA, parseColor } from "../lib/RGBA"
 import { FrameBufferRenderable, type FrameBufferOptions } from "./FrameBuffer"
-import type { RenderContext, SelectionState } from "../types"
+import type { RenderContext } from "../types"
 
 export interface ASCIIFontOptions extends RenderableOptions<ASCIIFontRenderable> {
   text?: string
@@ -29,6 +34,7 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
   private _bg: RGBA
   private _selectionBg: RGBA | undefined
   private _selectionFg: RGBA | undefined
+  private lastLocalSelection: LocalSelectionBounds | null = null
 
   private selectionHelper: ASCIIFontSelectionHelper
 
@@ -53,8 +59,6 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
     this.selectable = options.selectable ?? true
 
     this.selectionHelper = new ASCIIFontSelectionHelper(
-      () => this.x,
-      () => this.y,
       () => this._text,
       () => this._font,
     )
@@ -69,7 +73,11 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
   set text(value: string) {
     this._text = value
     this.updateDimensions()
-    this.selectionHelper.reevaluateSelection(this.width, this.height)
+
+    if (this.lastLocalSelection) {
+      this.selectionHelper.onLocalSelectionChanged(this.lastLocalSelection, this.width, this.height)
+    }
+
     this.renderFontToBuffer()
     this.requestRender()
   }
@@ -81,7 +89,11 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
   set font(value: keyof typeof fonts) {
     this._font = value
     this.updateDimensions()
-    this.selectionHelper.reevaluateSelection(this.width, this.height)
+
+    if (this.lastLocalSelection) {
+      this.selectionHelper.onLocalSelectionChanged(this.lastLocalSelection, this.width, this.height)
+    }
+
     this.renderFontToBuffer()
     this.requestRender()
   }
@@ -96,6 +108,7 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
     } else {
       this._fg = [typeof value === "string" ? parseColor(value) : value]
     }
+
     this.renderFontToBuffer()
     this.requestRender()
   }
@@ -117,16 +130,20 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
   }
 
   shouldStartSelection(x: number, y: number): boolean {
-    return this.selectionHelper.shouldStartSelection(x, y, this.width, this.height)
+    const localX = x - this.x
+    const localY = y - this.y
+    return this.selectionHelper.shouldStartSelection(localX, localY, this.width, this.height)
   }
 
-  onSelectionChanged(selection: SelectionState | null): boolean {
-    const changed = this.selectionHelper.onSelectionChanged(selection, this.width, this.height)
+  onSelectionChanged(selection: Selection | null): boolean {
+    const localSelection = convertGlobalToLocalSelection(selection, this.x, this.y)
+    this.lastLocalSelection = localSelection
+    const changed = this.selectionHelper.onLocalSelectionChanged(localSelection, this.width, this.height)
     if (changed) {
       this.renderFontToBuffer()
       this.requestRender()
     }
-    return this.selectionHelper.hasSelection()
+    return changed
   }
 
   getSelectedText(): string {
@@ -145,6 +162,7 @@ export class ASCIIFontRenderable extends FrameBufferRenderable {
   }
 
   private renderFontToBuffer(): void {
+    if (this.isDestroyed) return
     this.frameBuffer.clear(this._bg)
 
     renderFontToFrameBuffer(this.frameBuffer, {

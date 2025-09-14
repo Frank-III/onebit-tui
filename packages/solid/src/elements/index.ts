@@ -1,106 +1,115 @@
-import type {
-  ASCIIFontOptions,
-  BoxOptions,
-  InputRenderableOptions,
-  Renderable,
-  RenderableOptions,
-  SelectOption,
-  SelectRenderableOptions,
-  StyledText,
-  TabSelectOption,
-  TabSelectRenderableOptions,
-  TextChunk,
-  TextOptions,
-} from "@opentui/core"
 import {
   ASCIIFontRenderable,
   BoxRenderable,
   InputRenderable,
+  ScrollBoxRenderable,
   SelectRenderable,
   TabSelectRenderable,
+  TextAttributes,
+  TextNodeRenderable,
   TextRenderable,
+  type RenderContext,
+  type TextNodeOptions,
 } from "@opentui/core"
-import type { JSX, Ref } from "solid-js"
+import type { RenderableConstructor } from "../types/elements"
 export * from "./hooks"
 
-export const elements = {
-  ascii_font: ASCIIFontRenderable,
+class SpanRenderable extends TextNodeRenderable {
+  constructor(
+    private readonly _ctx: RenderContext | null,
+    options: TextNodeOptions,
+  ) {
+    super(options)
+  }
+}
+
+export const textNodeKeys = ["span", "b", "strong", "i", "em", "u"] as const
+export type TextNodeKey = (typeof textNodeKeys)[number]
+
+class TextModifierRenderable extends SpanRenderable {
+  constructor(options: any, modifier?: TextNodeKey) {
+    super(null, options)
+
+    // Set appropriate attributes based on modifier type
+    if (modifier === "b" || modifier === "strong") {
+      this.attributes = (this.attributes || 0) | TextAttributes.BOLD
+    } else if (modifier === "i" || modifier === "em") {
+      this.attributes = (this.attributes || 0) | TextAttributes.ITALIC
+    } else if (modifier === "u") {
+      this.attributes = (this.attributes || 0) | TextAttributes.UNDERLINE
+    }
+  }
+}
+
+export class BoldSpanRenderable extends TextModifierRenderable {
+  constructor(options: any) {
+    super(options, "b")
+  }
+}
+
+export class ItalicSpanRenderable extends TextModifierRenderable {
+  constructor(options: any) {
+    super(options, "i")
+  }
+}
+
+export class UnderlineSpanRenderable extends TextModifierRenderable {
+  constructor(options: any) {
+    super(options, "u")
+  }
+}
+
+export class LineBreakRenderable extends SpanRenderable {
+  constructor(_ctx: RenderContext | null, options: TextNodeOptions) {
+    super(null, options)
+    this.add()
+  }
+
+  public override add(): number {
+    return super.add("\n")
+  }
+}
+
+export const baseComponents = {
   box: BoxRenderable,
+  text: TextRenderable,
   input: InputRenderable,
   select: SelectRenderable,
+  ascii_font: ASCIIFontRenderable,
   tab_select: TabSelectRenderable,
-  text: TextRenderable,
-}
-export type Element = keyof typeof elements
+  scrollbox: ScrollBoxRenderable,
 
-type RenderableNonStyleKeys = "buffered"
-
-type ElementProps<
-  T extends RenderableOptions<K>,
-  K extends Renderable = Renderable,
-  NonStyleKeys extends keyof T = RenderableNonStyleKeys,
-> = {
-  style?: Omit<T, NonStyleKeys | RenderableNonStyleKeys>
-  ref?: Ref<K>
-} & T
-// } & Pick<T, NonStyleKeys>;
-
-type ContainerProps = { children?: JSX.Element }
-
-export type BoxElementProps = ElementProps<BoxOptions, BoxRenderable, "title"> & ContainerProps
-export type BoxStyle = BoxElementProps["style"]
-
-export type InputElementProps = ElementProps<
-  InputRenderableOptions,
-  InputRenderable,
-  "value" | "maxLength" | "placeholder"
-> & {
-  onInput?: (value: string) => void
-  onSubmit?: (value: string) => void
-  onChange?: (value: string) => void
-  focused?: boolean
-}
-export type InputStyle = InputElementProps["style"]
-
-type TabSelectEventCallback = (index: number, option: TabSelectOption) => void
-export type TabSelectElementProps = ElementProps<
-  TabSelectRenderableOptions,
-  TabSelectRenderable,
-  "options" | "showScrollArrows" | "showDescription" | "wrapSelection"
-> & {
-  onSelect?: TabSelectEventCallback
-  onChange?: TabSelectEventCallback
-  focused?: boolean
-}
-export type TabSelectStyle = TabSelectElementProps["style"]
-
-type SelectEventCallback = (index: number, option: SelectOption) => void
-
-export type SelectElementProps = ElementProps<
-  SelectRenderableOptions,
-  SelectRenderable,
-  "options" | "showScrollIndicator" | "wrapSelection" | "fastScrollStep"
-> & {
-  onSelect?: SelectEventCallback
-  onChange?: SelectEventCallback
-  focused?: boolean
-}
-export type SelectStyle = SelectElementProps["style"]
-
-type TextChildTypes = (string & {}) | number | boolean | null | undefined
-type TextProps = {
-  children: TextChildTypes | StyledText | TextChunk | Array<TextChildTypes | TextChunk>
+  span: SpanRenderable,
+  strong: BoldSpanRenderable,
+  b: BoldSpanRenderable,
+  em: ItalicSpanRenderable,
+  i: ItalicSpanRenderable,
+  u: UnderlineSpanRenderable,
+  br: LineBreakRenderable,
 }
 
-export type ASCIIFontElementProps = ElementProps<
-  ASCIIFontOptions,
-  ASCIIFontRenderable,
-  "text" | "selectable" // NonStyleKeys
-> & {
-  // TODO: Needs more work to support children
-  // children?: TextChildTypes | Array<TextChildTypes>;
-}
-export type ASCIIFontStyle = ASCIIFontElementProps["style"]
+type ComponentCatalogue = Record<string, RenderableConstructor>
 
-export type TextElementProps = ElementProps<TextOptions, TextRenderable, "content" | "selectable"> & TextProps
-export type TextStyle = TextElementProps["style"]
+export const componentCatalogue: ComponentCatalogue = { ...baseComponents }
+
+/**
+ * Extend the component catalogue with new renderable components
+ *
+ * @example
+ * ```tsx
+ * // Extend with an object of components
+ * extend({
+ *   consoleButton: ConsoleButtonRenderable,
+ *   customBox: CustomBoxRenderable
+ * })
+ * ```
+ */
+export function extend<T extends ComponentCatalogue>(objects: T): void {
+  Object.assign(componentCatalogue, objects)
+}
+
+export function getComponentCatalogue(): ComponentCatalogue {
+  return componentCatalogue
+}
+
+export type { ExtendedComponentProps, ExtendedIntrinsicElements, RenderableConstructor } from "../types/elements"

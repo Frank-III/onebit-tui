@@ -4,7 +4,7 @@ import {
   type CursorStyle,
   DebugOverlayCorner,
   type RenderContext,
-  type SelectionState,
+  type ViewportBounds,
   type WidthMethod,
 } from "./types"
 import { RGBA, parseColor, type ColorInput } from "./lib/RGBA"
@@ -16,6 +16,7 @@ import { MouseParser, type MouseEventType, type RawMouseEvent, type ScrollInfo }
 import { Selection } from "./lib/selection"
 import { EventEmitter } from "events"
 import { singleton } from "./singleton"
+import { getObjectsInViewport } from "./lib/objects-in-viewport"
 
 export interface CliRendererConfig {
   stdin?: NodeJS.ReadStream
@@ -54,13 +55,19 @@ export class MouseEvent {
   }
   public readonly scroll?: ScrollInfo
   public readonly target: Renderable | null
+  public readonly isSelecting?: boolean
+  private _propagationStopped: boolean = false
   private _defaultPrevented: boolean = false
+
+  public get propagationStopped(): boolean {
+    return this._propagationStopped
+  }
 
   public get defaultPrevented(): boolean {
     return this._defaultPrevented
   }
 
-  constructor(target: Renderable | null, attributes: RawMouseEvent & { source?: Renderable }) {
+  constructor(target: Renderable | null, attributes: RawMouseEvent & { source?: Renderable; isSelecting?: boolean }) {
     this.target = target
     this.type = attributes.type
     this.button = attributes.button
@@ -69,6 +76,11 @@ export class MouseEvent {
     this.modifiers = attributes.modifiers
     this.scroll = attributes.scroll
     this.source = attributes.source
+    this.isSelecting = attributes.isSelecting
+  }
+
+  public stopPropagation(): void {
+    this._propagationStopped = true
   }
 
   public preventDefault(): void {
@@ -141,7 +153,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   private static animationFrameId = 0
   private lib: RenderLib
   public rendererPtr: Pointer
-  private stdin: NodeJS.ReadStream
+  public stdin: NodeJS.ReadStream
   private stdout: NodeJS.WriteStream
   private exitOnCtrlC: boolean
   private isDestroyed: boolean = false
@@ -214,7 +226,6 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   private lastOverRenderable?: Renderable
 
   private currentSelection: Selection | null = null
-  private selectionState: SelectionState | null = null
   private selectionContainers: Renderable[] = []
 
   private _splitHeight: number = 0
@@ -233,8 +244,54 @@ export class CliRenderer extends EventEmitter implements RenderContext {
 
   private _useConsole: boolean = true
   private mouseParser: MouseParser = new MouseParser()
-  private sigwinchHandler: (() => void) | null = null
+  private sigwinchHandler: () => void = (() => {
+    const width = this.stdout.columns || 80
+    const height = this.stdout.rows || 24
+    this.handleResize(width, height)
+  }).bind(this)
   private _capabilities: any | null = null
+  private _latestPointer: { x: number; y: number } = { x: 0, y: 0 }
+
+  private _currentFocusedRenderable: Renderable | null = null
+  private lifecyclePasses: Set<Renderable> = new Set()
+
+  private handleError: (error: Error) => void = ((error: Error) => {
+    this.stop()
+    this.destroy()
+
+    new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(true)
+      }, 100)
+    }).then(() => {
+      // TODO: Fix friggin shut down sequence to not splurt into scrollback
+      this.realStdoutWrite.call(this.stdout, "\n".repeat(this._terminalHeight))
+
+      this.realStdoutWrite.call(this.stdout, "\n=== FATAL ERROR OCCURRED ===\n")
+      this.realStdoutWrite.call(this.stdout, "Console cache:\n")
+      this.realStdoutWrite.call(this.stdout, this.console.getCachedLogs())
+      this.realStdoutWrite.call(this.stdout, "\nCaptured output:\n")
+      const capturedOutput = capture.claimOutput()
+      if (capturedOutput) {
+        this.realStdoutWrite.call(this.stdout, capturedOutput + "\n")
+      }
+      this.realStdoutWrite.call(this.stdout, "\nError details:\n")
+      this.realStdoutWrite.call(this.stdout, error.message || "unknown error")
+      this.realStdoutWrite.call(this.stdout, "\n")
+      this.realStdoutWrite.call(this.stdout, error.stack || error.toString())
+      this.realStdoutWrite.call(this.stdout, "\n")
+
+      process.exit(1)
+    })
+  }).bind(this)
+
+  private exitHandler: () => void = (() => {
+    this.destroy()
+  }).bind(this)
+
+  private warningHandler: (warning: any) => void = ((warning: any) => {
+    console.warn(JSON.stringify(warning.message, null, 2))
+  }).bind(this)
 
   constructor(
     lib: RenderLib,
@@ -290,45 +347,13 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this.stdout.write = this.interceptStdoutWrite.bind(this)
 
     // Handle terminal resize
-    this.sigwinchHandler = () => {
-      const width = this.stdout.columns || 80
-      const height = this.stdout.rows || 24
-      this.handleResize(width, height)
-    }
     process.on("SIGWINCH", this.sigwinchHandler)
 
-    const handleError = (error: Error) => {
-      this.stop()
-      this.destroy()
+    process.on("warning", this.warningHandler)
 
-      new Promise((resolve) => {
-        setTimeout(() => {
-          resolve(true)
-        }, 100)
-      }).then(() => {
-        this.realStdoutWrite.call(this.stdout, "\n=== FATAL ERROR OCCURRED ===\n")
-        this.realStdoutWrite.call(this.stdout, "Console cache:\n")
-        this.realStdoutWrite.call(this.stdout, this.console.getCachedLogs())
-        this.realStdoutWrite.call(this.stdout, "\nCaptured output:\n")
-        const capturedOutput = capture.claimOutput()
-        if (capturedOutput) {
-          this.realStdoutWrite.call(this.stdout, capturedOutput + "\n")
-        }
-        this.realStdoutWrite.call(this.stdout, "\nError details:\n")
-        this.realStdoutWrite.call(this.stdout, error.message || "unknown error")
-        this.realStdoutWrite.call(this.stdout, "\n")
-        this.realStdoutWrite.call(this.stdout, error.stack || error.toString())
-        this.realStdoutWrite.call(this.stdout, "\n")
-
-        process.exit(1)
-      })
-    }
-
-    process.on("uncaughtException", handleError)
-    process.on("unhandledRejection", handleError)
-    process.on("exit", () => {
-      this.destroy()
-    })
+    process.on("uncaughtException", this.handleError)
+    process.on("unhandledRejection", this.handleError)
+    process.on("exit", this.exitHandler)
 
     this._console = new TerminalConsole(this, config.consoleOptions)
     this.useConsole = config.useConsole ?? true
@@ -336,6 +361,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     global.requestAnimationFrame = (callback: FrameRequestCallback) => {
       const id = CliRenderer.animationFrameId++
       this.animationRequest.set(id, callback)
+      this.requestLive()
       return id
     }
     global.cancelAnimationFrame = (handle: number) => {
@@ -356,6 +382,34 @@ export class CliRenderer extends EventEmitter implements RenderContext {
         }
       }
     }
+
+    this.setupInput()
+  }
+
+  public registerLifecyclePass(renderable: Renderable) {
+    this.lifecyclePasses.add(renderable)
+  }
+
+  public unregisterLifecyclePass(renderable: Renderable) {
+    this.lifecyclePasses.delete(renderable)
+  }
+
+  public getLifecyclePasses() {
+    return this.lifecyclePasses
+  }
+
+  public get currentFocusedRenderable(): Renderable | null {
+    return this._currentFocusedRenderable
+  }
+
+  public focusRenderable(renderable: Renderable) {
+    if (this._currentFocusedRenderable === renderable) return
+
+    if (this._currentFocusedRenderable) {
+      this._currentFocusedRenderable.blur()
+    }
+
+    this._currentFocusedRenderable = renderable
   }
 
   public addToHitGrid(x: number, y: number, width: number, height: number, id: number) {
@@ -374,7 +428,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   public requestRender() {
-    if (!this.updateScheduled && !this._isRunning) {
+    if (!this.rendering && !this.updateScheduled && !this._isRunning) {
       this.updateScheduled = true
       process.nextTick(() => {
         this.loop()
@@ -516,7 +570,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     return true
   }
 
-  private disableStdoutInterception(): void {
+  public disableStdoutInterception(): void {
     this.flushStdoutCache(this._splitHeight)
     this.stdout.write = this.realStdoutWrite
   }
@@ -601,38 +655,42 @@ export class CliRenderer extends EventEmitter implements RenderContext {
       this.enableMouse()
     }
 
-    this.stdin.on("data", (data: Buffer) => {
-      const str = data.toString()
-
-      if (this.waitingForPixelResolution && /\x1b\[4;\d+;\d+t/.test(str)) {
-        const match = str.match(/\x1b\[4;(\d+);(\d+)t/)
-        if (match) {
-          const resolution: PixelResolution = {
-            width: parseInt(match[2]),
-            height: parseInt(match[1]),
-          }
-
-          this._resolution = resolution
-          this.waitingForPixelResolution = false
-          return
-        }
-      }
-
-      if (this.exitOnCtrlC && str === "\u0003") {
-        process.nextTick(() => {
-          process.exit()
-        })
-        return
-      }
-
-      if (this._useMouse && this.handleMouseData(data)) {
-        return
-      }
-
-      this.emit("key", data)
-    })
-
     this.queryPixelResolution()
+  }
+
+  private stdinListener: (data: Buffer) => void = ((data: Buffer) => {
+    const str = data.toString()
+
+    if (this.waitingForPixelResolution && /\x1b\[4;\d+;\d+t/.test(str)) {
+      const match = str.match(/\x1b\[4;(\d+);(\d+)t/)
+      if (match) {
+        const resolution: PixelResolution = {
+          width: parseInt(match[2]),
+          height: parseInt(match[1]),
+        }
+
+        this._resolution = resolution
+        this.waitingForPixelResolution = false
+        return
+      }
+    }
+
+    if (this.exitOnCtrlC && str === "\u0003") {
+      process.nextTick(() => {
+        process.exit()
+      })
+      return
+    }
+
+    if (this._useMouse && this.handleMouseData(data)) {
+      return
+    }
+
+    this.emit("key", data)
+  }).bind(this)
+
+  private setupInput(): void {
+    this.stdin.on("data", this.stdinListener)
   }
 
   private handleMouseData(data: Buffer): boolean {
@@ -645,6 +703,9 @@ export class CliRenderer extends EventEmitter implements RenderContext {
         }
         mouseEvent.y -= this.renderOffset
       }
+
+      this._latestPointer.x = mouseEvent.x
+      this._latestPointer.y = mouseEvent.y
 
       if (mouseEvent.type === "scroll") {
         const maybeRenderableId = this.lib.checkHit(this.rendererPtr, mouseEvent.x, mouseEvent.y)
@@ -662,29 +723,52 @@ export class CliRenderer extends EventEmitter implements RenderContext {
       this.lastOverRenderableNum = maybeRenderableId
       const maybeRenderable = Renderable.renderablesByNumber.get(maybeRenderableId)
 
-      if (mouseEvent.type === "down" && mouseEvent.button === MouseButton.LEFT) {
+      if (
+        mouseEvent.type === "down" &&
+        mouseEvent.button === MouseButton.LEFT &&
+        !this.currentSelection?.isSelecting &&
+        !mouseEvent.modifiers.ctrl
+      ) {
         if (
           maybeRenderable &&
           maybeRenderable.selectable &&
+          !maybeRenderable.isDestroyed &&
           maybeRenderable.shouldStartSelection(mouseEvent.x, mouseEvent.y)
         ) {
           this.startSelection(maybeRenderable, mouseEvent.x, mouseEvent.y)
+          const event = new MouseEvent(maybeRenderable, mouseEvent)
+          maybeRenderable.processMouseEvent(event)
           return true
         }
       }
 
-      if (mouseEvent.type === "drag" && this.selectionState?.isSelecting) {
+      if (mouseEvent.type === "drag" && this.currentSelection?.isSelecting) {
         this.updateSelection(maybeRenderable, mouseEvent.x, mouseEvent.y)
+
+        if (maybeRenderable) {
+          const event = new MouseEvent(maybeRenderable, { ...mouseEvent, isSelecting: true })
+          maybeRenderable.processMouseEvent(event)
+        }
+
         return true
       }
 
-      if (mouseEvent.type === "up" && this.selectionState?.isSelecting) {
+      if (mouseEvent.type === "up" && this.currentSelection?.isSelecting) {
+        if (maybeRenderable) {
+          const event = new MouseEvent(maybeRenderable, { ...mouseEvent, isSelecting: true })
+          maybeRenderable.processMouseEvent(event)
+        }
+
         this.finishSelection()
         return true
       }
 
-      if (mouseEvent.type === "down" && mouseEvent.button === MouseButton.LEFT && this.selectionState) {
-        this.clearSelection()
+      if (mouseEvent.type === "down" && mouseEvent.button === MouseButton.LEFT && this.currentSelection) {
+        if (mouseEvent.modifiers.ctrl) {
+          this.currentSelection.isSelecting = true
+          this.updateSelection(maybeRenderable, mouseEvent.x, mouseEvent.y)
+          return true
+        }
       }
 
       if (!sameElement && (mouseEvent.type === "drag" || mouseEvent.type === "move")) {
@@ -729,19 +813,24 @@ export class CliRenderer extends EventEmitter implements RenderContext {
         this.requestRender()
       }
 
+      let event: MouseEvent | undefined = undefined
       if (maybeRenderable) {
         if (mouseEvent.type === "drag" && mouseEvent.button === MouseButton.LEFT) {
           this.capturedRenderable = maybeRenderable
         } else {
           this.capturedRenderable = undefined
         }
-        const event = new MouseEvent(maybeRenderable, mouseEvent)
+        event = new MouseEvent(maybeRenderable, mouseEvent)
         maybeRenderable.processMouseEvent(event)
-        return true
+      } else {
+        this.capturedRenderable = undefined
+        this.lastOverRenderable = undefined
       }
 
-      this.capturedRenderable = undefined
-      this.lastOverRenderable = undefined
+      if (!event?.defaultPrevented && mouseEvent.type === "down" && this.currentSelection) {
+        this.clearSelection()
+      }
+
       return true
     }
 
@@ -833,7 +922,7 @@ export class CliRenderer extends EventEmitter implements RenderContext {
       this.renderOffset = height - this._splitHeight
       this.width = width
       this.height = this._splitHeight
-      this.currentRenderBuffer.clearLocal(RGBA.fromHex("#000000"), "\u0a00")
+      this.currentRenderBuffer.clear(RGBA.fromHex("#000000"))
       this.lib.setRenderOffset(this.rendererPtr, this.renderOffset)
     } else {
       this.width = width
@@ -976,6 +1065,10 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this.internalStart()
   }
 
+  public auto(): void {
+    this.controlState = this._isRunning ? RendererControlState.AUTO_STARTED : RendererControlState.IDLE
+  }
+
   private internalStart(): void {
     if (!this._isRunning && !this.isDestroyed) {
       this._isRunning = true
@@ -1019,18 +1112,23 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   public destroy(): void {
-    this.stdin.setRawMode(false)
+    this.stdin.removeListener("data", this.stdinListener)
+    process.removeListener("SIGWINCH", this.sigwinchHandler)
+    process.removeListener("uncaughtException", this.handleError)
+    process.removeListener("unhandledRejection", this.handleError)
+    process.removeListener("exit", this.exitHandler)
+    process.removeListener("warning", this.warningHandler)
+    capture.removeListener("write", this.captureCallback)
+
+    if (this.stdin.setRawMode) {
+      this.stdin.setRawMode(false)
+    }
 
     if (this.isDestroyed) return
     this.isDestroyed = true
 
     this.waitingForPixelResolution = false
     this.capturedRenderable = undefined
-
-    if (this.sigwinchHandler) {
-      process.removeListener("SIGWINCH", this.sigwinchHandler)
-      this.sigwinchHandler = null
-    }
 
     this._console.deactivate()
     this.disableStdoutInterception()
@@ -1077,7 +1175,10 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     const frameRequests = Array.from(this.animationRequest.values())
     this.animationRequest.clear()
     const animationRequestStart = performance.now()
-    frameRequests.forEach((callback) => callback(deltaTime))
+    frameRequests.forEach((callback) => {
+      callback(deltaTime)
+      this.dropLive()
+    })
     const animationRequestEnd = performance.now()
     const animationRequestTime = animationRequestEnd - animationRequestStart
 
@@ -1193,20 +1294,23 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     return this.currentSelection
   }
 
+  public get hasSelection(): boolean {
+    return !!this.currentSelection
+  }
+
   public getSelectionContainer(): Renderable | null {
     return this.selectionContainers.length > 0 ? this.selectionContainers[this.selectionContainers.length - 1] : null
   }
 
-  public hasSelection(): boolean {
-    return this.currentSelection !== null
-  }
-
   public clearSelection(): void {
-    if (this.selectionState) {
-      this.selectionState = null
-      this.notifySelectablesOfSelectionChange()
+    if (this.currentSelection) {
+      for (const renderable of this.currentSelection.touchedRenderables) {
+        if (renderable.selectable && !renderable.isDestroyed) {
+          renderable.onSelectionChanged(null)
+        }
+      }
+      this.currentSelection = null
     }
-    this.currentSelection = null
     this.selectionContainers = []
   }
 
@@ -1214,20 +1318,13 @@ export class CliRenderer extends EventEmitter implements RenderContext {
     this.clearSelection()
     this.selectionContainers.push(startRenderable.parent || this.root)
 
-    this.selectionState = {
-      anchor: { x, y },
-      focus: { x, y },
-      isActive: true,
-      isSelecting: true,
-    }
-
-    this.currentSelection = new Selection({ x, y }, { x, y })
+    this.currentSelection = new Selection(startRenderable, { x, y }, { x, y })
     this.notifySelectablesOfSelectionChange()
   }
 
   private updateSelection(currentRenderable: Renderable | undefined, x: number, y: number): void {
-    if (this.selectionState) {
-      this.selectionState.focus = { x, y }
+    if (this.currentSelection) {
+      this.currentSelection.focus = { x, y }
 
       if (this.selectionContainers.length > 0) {
         const currentContainer = this.selectionContainers[this.selectionContainers.length - 1]
@@ -1249,11 +1346,18 @@ export class CliRenderer extends EventEmitter implements RenderContext {
         }
       }
 
-      if (this.currentSelection) {
-        this.currentSelection = new Selection(this.selectionState.anchor, this.selectionState.focus)
-      }
-
       this.notifySelectablesOfSelectionChange()
+    }
+  }
+
+  public requestSelectionUpdate(): void {
+    if (this.currentSelection?.isSelecting) {
+      const pointer = this._latestPointer
+
+      const maybeRenderableId = this.lib.checkHit(this.rendererPtr, pointer.x, pointer.y)
+      const maybeRenderable = Renderable.renderablesByNumber.get(maybeRenderableId)
+
+      this.updateSelection(maybeRenderable, pointer.x, pointer.y)
     }
   }
 
@@ -1267,54 +1371,61 @@ export class CliRenderer extends EventEmitter implements RenderContext {
   }
 
   private finishSelection(): void {
-    if (this.selectionState) {
-      this.selectionState.isSelecting = false
+    if (this.currentSelection) {
+      this.currentSelection.isSelecting = false
       this.emit("selection", this.currentSelection)
     }
   }
 
   private notifySelectablesOfSelectionChange(): void {
-    let normalizedSelection: SelectionState | null = null
-    if (this.selectionState) {
-      normalizedSelection = { ...this.selectionState }
-
-      if (
-        normalizedSelection.anchor.y > normalizedSelection.focus.y ||
-        (normalizedSelection.anchor.y === normalizedSelection.focus.y &&
-          normalizedSelection.anchor.x > normalizedSelection.focus.x)
-      ) {
-        const temp = normalizedSelection.anchor
-        normalizedSelection.anchor = normalizedSelection.focus
-        normalizedSelection.focus = {
-          x: temp.x + 1,
-          y: temp.y,
-        }
-      }
-    }
-
     const selectedRenderables: Renderable[] = []
-
-    for (const [, renderable] of Renderable.renderablesByNumber) {
-      if (renderable.visible && renderable.selectable) {
-        const currentContainer =
-          this.selectionContainers.length > 0 ? this.selectionContainers[this.selectionContainers.length - 1] : null
-        let hasSelection = false
-        if (!currentContainer || this.isWithinContainer(renderable, currentContainer)) {
-          hasSelection = renderable.onSelectionChanged(normalizedSelection)
-        } else {
-          hasSelection = renderable.onSelectionChanged(
-            normalizedSelection ? { ...normalizedSelection, isActive: false } : null,
-          )
-        }
-
-        if (hasSelection) {
-          selectedRenderables.push(renderable)
-        }
-      }
-    }
+    const touchedRenderables: Renderable[] = []
+    const currentContainer =
+      this.selectionContainers.length > 0 ? this.selectionContainers[this.selectionContainers.length - 1] : this.root
 
     if (this.currentSelection) {
+      this.walkSelectableRenderables(
+        currentContainer,
+        this.currentSelection.bounds,
+        selectedRenderables,
+        touchedRenderables,
+      )
+
+      for (const renderable of this.currentSelection.touchedRenderables) {
+        if (!touchedRenderables.includes(renderable)) {
+          renderable.onSelectionChanged(null)
+        }
+      }
+
       this.currentSelection.updateSelectedRenderables(selectedRenderables)
+      this.currentSelection.updateTouchedRenderables(touchedRenderables)
+    }
+  }
+
+  private walkSelectableRenderables(
+    container: Renderable,
+    selectionBounds: ViewportBounds,
+    selectedRenderables: Renderable[],
+    touchedRenderables: Renderable[],
+  ): void {
+    const children = getObjectsInViewport<Renderable>(
+      selectionBounds,
+      container.getChildrenSortedByPrimaryAxis(),
+      container.primaryAxis,
+      0,
+    )
+
+    for (const child of children) {
+      if (child.selectable) {
+        const hasSelection = child.onSelectionChanged(this.currentSelection)
+        if (hasSelection) {
+          selectedRenderables.push(child)
+        }
+        touchedRenderables.push(child)
+      }
+      if (child.getChildrenCount() > 0) {
+        this.walkSelectableRenderables(child, selectionBounds, selectedRenderables, touchedRenderables)
+      }
     }
   }
 }

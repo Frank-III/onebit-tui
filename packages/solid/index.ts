@@ -13,7 +13,6 @@ export const render = async (node: () => JSX.Element, renderConfig: CliRendererC
           return renderer
         },
         get children() {
-          // @ts-expect-error is fine, ts makes it so JSX.Element is the only thing returned from components
           return createComponent(node, {})
         },
       }),
@@ -23,4 +22,5 @@ export const render = async (node: () => JSX.Element, renderConfig: CliRendererC
 
 export * from "./src/reconciler"
 export * from "./src/elements"
+export * from "./src/types/elements"
 export { type JSX }

@@ -5,6 +5,7 @@ import { getKeyHandler, type KeyHandler } from "./lib/KeyHandler"
 import { TrackedNode, createTrackedNode } from "./lib/TrackedNode"
 import type { ParsedKey } from "./lib/parse.keypress"
 import type { MouseEventType } from "./lib/parse.mouse"
+import type { Selection } from "./lib/selection"
 import {
   parseAlign,
   parseFlexDirection,
@@ -19,9 +20,11 @@ import {
   type PositionTypeString,
   type WrapString,
 } from "./lib/yoga.options"
+import { maybeMakeRenderable, type VNode } from "./renderables/composition/vnode"
 import type { MouseEvent } from "./renderer"
-import type { RenderContext, SelectionState } from "./types"
-import { ensureRenderable, type VNode } from "./renderables/composition/vnode"
+import type { RenderContext } from "./types"
+
+const BrandedRenderable: unique symbol = Symbol.for("@opentui/core/Renderable")
 
 export enum LayoutEvents {
   LAYOUT_CHANGED = "layout-changed",
@@ -42,7 +45,11 @@ export interface Position {
   left?: number | "auto" | `${number}%`
 }
 
-export interface LayoutOptions {
+export interface BaseRenderableOptions {
+  id?: string
+}
+
+export interface LayoutOptions extends BaseRenderableOptions {
   flexGrow?: number
   flexShrink?: number
   flexDirection?: FlexDirectionString
@@ -74,8 +81,7 @@ export interface LayoutOptions {
   enableLayout?: boolean
 }
 
-export interface RenderableOptions<T extends Renderable = Renderable> extends Partial<LayoutOptions> {
-  id?: string
+export interface RenderableOptions<T extends BaseRenderable = BaseRenderable> extends Partial<LayoutOptions> {
   width?: number | "auto" | `${number}%`
   height?: number | "auto" | `${number}%`
   zIndex?: number
@@ -101,6 +107,8 @@ export interface RenderableOptions<T extends Renderable = Renderable> extends Pa
   onMouseScroll?: (this: T, event: MouseEvent) => void
 
   onKeyDown?: (key: ParsedKey) => void
+
+  onSizeChange?: (this: T) => void
 }
 
 function validateOptions(id: string, options: RenderableOptions<Renderable>): void {
@@ -184,12 +192,69 @@ export function isSizeType(value: any): value is number | `${number}%` | undefin
   return isValidPercentage(value)
 }
 
-export abstract class Renderable extends EventEmitter {
-  private static renderableNumber = 1
-  static renderablesByNumber: Map<number, Renderable> = new Map()
+export function isRenderable(obj: any): obj is Renderable {
+  return !!obj?.[BrandedRenderable]
+}
 
+export abstract class BaseRenderable extends EventEmitter {
+  [BrandedRenderable] = true
+
+  private static renderableNumber = 1
   public readonly id: string
   public readonly num: number
+  protected _dirty: boolean = false
+  public parent: BaseRenderable | null = null
+  protected _visible: boolean = true
+
+  constructor(options: BaseRenderableOptions) {
+    super()
+    this.num = BaseRenderable.renderableNumber++
+    this.id = options.id ?? `renderable-${this.num}`
+  }
+
+  public abstract add(obj: BaseRenderable | unknown, index?: number): number
+  public abstract remove(id: string): void
+  public abstract insertBefore(obj: BaseRenderable | unknown, anchor: BaseRenderable | unknown): void
+  public abstract getChildren(): BaseRenderable[]
+  public abstract getChildrenCount(): number
+  public abstract getRenderable(id: string): BaseRenderable | undefined
+  public abstract requestRender(): void
+
+  public get isDirty(): boolean {
+    return this._dirty
+  }
+
+  protected markClean(): void {
+    this._dirty = false
+  }
+
+  protected markDirty(): void {
+    this._dirty = true
+  }
+
+  public destroy(): void {
+    // Default implementation: do nothing
+    // Override this method to provide custom removal logic
+  }
+
+  public destroyRecursively(): void {
+    // Default implementation: do nothing
+    // Override this method to provide custom destruction logic
+  }
+
+  public get visible(): boolean {
+    return this._visible
+  }
+
+  public set visible(value: boolean) {
+    this._visible = value
+  }
+}
+
+export abstract class Renderable extends BaseRenderable {
+  static renderablesByNumber: Map<number, Renderable> = new Map()
+
+  private _isDestroyed: boolean = false
   protected _ctx: RenderContext
   protected _translateX: number = 0
   protected _translateY: number = 0
@@ -200,19 +265,18 @@ export abstract class Renderable extends EventEmitter {
   protected _widthValue: number = 0
   protected _heightValue: number = 0
   private _zIndex: number
-  protected _visible: boolean
   public selectable: boolean = false
   protected buffered: boolean
   protected frameBuffer: OptimizedBuffer | null = null
-  private _dirty: boolean = false
 
-  protected focusable: boolean = false
+  protected _focusable: boolean = false
   protected _focused: boolean = false
   protected keyHandler: KeyHandler = getKeyHandler()
   protected keypressHandler: ((key: ParsedKey) => void) | null = null
   private _live: boolean = false
   protected _liveCount: number = 0
 
+  private _sizeChangeListener: (() => void) | undefined = undefined
   private _mouseListener: ((event: MouseEvent) => void) | null = null
   private _mouseListeners: Partial<Record<MouseEventType, (event: MouseEvent) => void>> = {}
   private _keyListeners: Partial<Record<"down", (key: ParsedKey) => void>> = {}
@@ -222,20 +286,23 @@ export abstract class Renderable extends EventEmitter {
   protected _overflow: OverflowString = "visible"
   protected _position: Position = {}
 
-  private _childHostOverride: Renderable | null = null
-
   private renderableMap: Map<string, Renderable> = new Map()
-  private renderableArray: Renderable[] = []
+  protected renderableArray: Renderable[] = []
   private needsZIndexSort: boolean = false
   public parent: Renderable | null = null
+
+  private childrenPrimarySortDirty: boolean = true
+  private childrenSortedByPrimaryAxis: Renderable[] = []
+  private _newChildren: Renderable[] = []
+
+  public onLifecyclePass: (() => void) | null = null
 
   public renderBefore?: (this: Renderable, buffer: OptimizedBuffer, deltaTime: number) => void
   public renderAfter?: (this: Renderable, buffer: OptimizedBuffer, deltaTime: number) => void
 
   constructor(ctx: RenderContext, options: RenderableOptions<any>) {
-    super()
-    this.num = Renderable.renderableNumber++
-    this.id = options.id ?? `renderable-${this.num}`
+    super(options)
+
     this._ctx = ctx
     Renderable.renderablesByNumber.set(this.num, this)
 
@@ -271,12 +338,21 @@ export abstract class Renderable extends EventEmitter {
     }
   }
 
+  public get focusable(): boolean {
+    return this._focusable
+  }
+
   public get ctx(): RenderContext {
     return this._ctx
   }
 
   public get visible(): boolean {
     return this._visible
+  }
+
+  public get primaryAxis(): "row" | "column" {
+    const dir = this.layoutNode.yogaNode.getFlexDirection()
+    return dir === 2 || dir === 3 ? "row" : "column"
   }
 
   public set visible(value: boolean) {
@@ -304,7 +380,7 @@ export abstract class Renderable extends EventEmitter {
     return false
   }
 
-  public onSelectionChanged(selection: SelectionState | null): boolean {
+  public onSelectionChanged(selection: Selection | null): boolean {
     // Default implementation: do nothing
     // Override this method to provide custom selection handling
     return false
@@ -319,13 +395,9 @@ export abstract class Renderable extends EventEmitter {
   }
 
   public focus(): void {
-    if (this.childHost !== this) {
-      this.childHost.focus()
-      return
-    }
+    if (this._focused || !this._focusable) return
 
-    if (this._focused || !this.focusable) return
-
+    this._ctx.focusRenderable(this)
     this._focused = true
     this.requestRender()
 
@@ -341,12 +413,7 @@ export abstract class Renderable extends EventEmitter {
   }
 
   public blur(): void {
-    if (this.childHost !== this) {
-      this.childHost.blur()
-      return
-    }
-
-    if (!this._focused || !this.focusable) return
+    if (!this._focused || !this._focusable) return
 
     this._focused = false
     this.requestRender()
@@ -389,18 +456,6 @@ export abstract class Renderable extends EventEmitter {
 
   public handleKeyPress?(key: ParsedKey | string): boolean
 
-  protected get isDirty(): boolean {
-    return this._dirty
-  }
-
-  public get childHost(): Renderable {
-    return this._childHostOverride || this
-  }
-
-  public set childHost(host: Renderable | null) {
-    this._childHostOverride = host
-  }
-
   public findDescendantById(id: string): Renderable | undefined {
     for (const child of this.renderableArray) {
       if (child.id === id) return child
@@ -410,21 +465,8 @@ export abstract class Renderable extends EventEmitter {
     return undefined
   }
 
-  public setChildHostById(id: string): boolean {
-    const found = this.findDescendantById(id)
-    if (found) {
-      this._childHostOverride = found
-      return true
-    }
-    return false
-  }
-
-  private markClean(): void {
-    this._dirty = false
-  }
-
   public requestRender() {
-    this._dirty = true
+    this.markDirty()
     this._ctx.requestRender()
   }
 
@@ -436,6 +478,7 @@ export abstract class Renderable extends EventEmitter {
     if (this._translateX === value) return
     this._translateX = value
     this.requestRender()
+    if (this.parent) this.parent.childrenPrimarySortDirty = true
   }
 
   public get translateY(): number {
@@ -446,6 +489,7 @@ export abstract class Renderable extends EventEmitter {
     if (this._translateY === value) return
     this._translateY = value
     this.requestRender()
+    if (this.parent) this.parent.childrenPrimarySortDirty = true
   }
 
   public get x(): number {
@@ -554,6 +598,26 @@ export abstract class Renderable extends EventEmitter {
       this.renderableArray.sort((a, b) => (a.zIndex > b.zIndex ? 1 : a.zIndex < b.zIndex ? -1 : 0))
       this.needsZIndexSort = false
     }
+  }
+
+  public getChildrenSortedByPrimaryAxis(): Renderable[] {
+    if (!this.childrenPrimarySortDirty && this.childrenSortedByPrimaryAxis.length === this.renderableArray.length) {
+      return this.childrenSortedByPrimaryAxis
+    }
+
+    const dir = this.layoutNode.yogaNode.getFlexDirection()
+    const axis: "x" | "y" = dir === 2 || dir === 3 ? "x" : "y"
+
+    const sorted = [...this.renderableArray]
+    sorted.sort((a, b) => {
+      const va = axis === "y" ? a.y : a.x
+      const vb = axis === "y" ? b.y : b.x
+      return va - vb
+    })
+
+    this.childrenSortedByPrimaryAxis = sorted
+    this.childrenPrimarySortDirty = false
+    return this.childrenSortedByPrimaryAxis
   }
 
   private setupYogaProperties(options: RenderableOptions<Renderable>): void {
@@ -694,6 +758,10 @@ export abstract class Renderable extends EventEmitter {
     this._positionType = positionType
     this.layoutNode.yogaNode.setPositionType(parsePositionType(positionType))
     this.requestRender()
+  }
+
+  get overflow(): OverflowString {
+    return this._overflow
   }
 
   set overflow(overflow: OverflowString) {
@@ -899,6 +967,9 @@ export abstract class Renderable extends EventEmitter {
   public updateFromLayout(): void {
     const layout = this.layoutNode.yogaNode.getComputedLayout()
 
+    const oldX = this._x
+    const oldY = this._y
+
     this._x = layout.left
     this._y = layout.top
 
@@ -911,6 +982,10 @@ export abstract class Renderable extends EventEmitter {
 
     if (sizeChanged) {
       this.onLayoutResize(newWidth, newHeight)
+    }
+
+    if (oldX !== this._x || oldY !== this._y) {
+      if (this.parent) this.parent.childrenPrimarySortDirty = true
     }
   }
 
@@ -954,6 +1029,7 @@ export abstract class Renderable extends EventEmitter {
   }
 
   protected onResize(width: number, height: number): void {
+    this.onSizeChange?.()
     this.emit("resize")
     // Override in subclasses for additional resize logic
   }
@@ -965,34 +1041,53 @@ export abstract class Renderable extends EventEmitter {
     obj.parent = this
   }
 
-  public add(obj: Renderable | VNode<any, any[]>, index?: number): number {
-    if (this.childHost !== this) {
-      return this.childHost.add(obj, index)
+  private _forceLayoutUpdateFor: Renderable[] | null = null
+  public add(obj: Renderable | VNode<any, any[]> | unknown, index?: number): number {
+    if (!obj) {
+      return -1
     }
 
-    obj = ensureRenderable(this._ctx, obj)
-
-    if (this.renderableMap.has(obj.id)) {
-      console.warn(`A renderable with id ${obj.id} already exists in ${this.id}, removing it`)
-      this.remove(obj.id)
+    const renderable = maybeMakeRenderable(this._ctx, obj)
+    if (!renderable) {
+      return -1
     }
 
-    this.replaceParent(obj)
+    if (renderable.isDestroyed) {
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`Renderable with id ${renderable.id} was already destroyed, skipping add`)
+      }
+      return -1
+    }
 
-    const childLayoutNode = obj.getLayoutNode()
+    if (this.renderableMap.has(renderable.id)) {
+      console.warn(`A renderable with id ${renderable.id} already exists in ${this.id}, removing it`)
+      this.remove(renderable.id)
+    }
+
+    this.replaceParent(renderable)
+
+    const childLayoutNode = renderable.getLayoutNode()
     let insertedIndex: number
     if (index !== undefined) {
-      this.renderableArray.splice(index, 0, obj)
+      this.renderableArray.splice(index, 0, renderable)
+      this._forceLayoutUpdateFor = this.renderableArray.slice(index)
       insertedIndex = this.layoutNode.insertChild(childLayoutNode, index)
     } else {
-      this.renderableArray.push(obj)
+      this.renderableArray.push(renderable)
       insertedIndex = this.layoutNode.addChild(childLayoutNode)
     }
     this.needsZIndexSort = true
-    this.renderableMap.set(obj.id, obj)
+    this.childrenPrimarySortDirty = true
+    this.renderableMap.set(renderable.id, renderable)
 
-    if (obj._liveCount > 0) {
-      this.propagateLiveCount(obj._liveCount)
+    if (typeof renderable.onLifecyclePass === "function") {
+      this._ctx.registerLifecyclePass(renderable)
+    }
+
+    this._newChildren.push(renderable)
+
+    if (renderable._liveCount > 0) {
+      this.propagateLiveCount(renderable._liveCount)
     }
 
     this.requestRender()
@@ -1000,44 +1095,48 @@ export abstract class Renderable extends EventEmitter {
     return insertedIndex
   }
 
-  insertBefore(obj: Renderable | VNode<any, any[]>, anchor?: Renderable): number {
-    if (this.childHost !== this) {
-      const idx = this.childHost.insertBefore(obj, anchor)
-      return idx
+  insertBefore(obj: Renderable | VNode<any, any[]> | unknown, anchor?: Renderable | unknown): number {
+    if (!obj) {
+      return -1
     }
 
-    obj = ensureRenderable(this._ctx, obj)
+    const renderable = maybeMakeRenderable(this._ctx, obj)
+    if (!renderable) {
+      return -1
+    }
 
     if (!anchor) {
-      return this.add(obj)
+      return this.add(renderable)
     }
 
+    if (!isRenderable(anchor)) {
+      throw new Error("Anchor must be a Renderable")
+    }
+
+    // Should we really throw for this? Maybe just log a warning in dev.
     if (!this.renderableMap.has(anchor.id)) {
       throw new Error("Anchor does not exist")
     }
 
     const anchorIndex = this.renderableArray.indexOf(anchor)
+    // Same here: maybe just log a warning in dev.
     if (anchorIndex === -1) {
       throw new Error("Anchor does not exist")
     }
 
-    return this.add(obj, anchorIndex)
+    return this.add(renderable, anchorIndex)
   }
 
   // TODO: that naming is meh
   public getRenderable(id: string): Renderable | undefined {
-    if (this.childHost !== this) return this.childHost.getRenderable(id)
     return this.renderableMap.get(id)
   }
 
   public remove(id: string): void {
-    if (this.childHost !== this) {
-      this.childHost.remove(id)
-      return
-    }
     if (!id) {
       return
     }
+
     if (this.renderableMap.has(id)) {
       const obj = this.renderableMap.get(id)
       if (obj) {
@@ -1051,6 +1150,7 @@ export abstract class Renderable extends EventEmitter {
 
         obj.onRemove()
         obj.parent = null
+        this._ctx.unregisterLifecyclePass(obj)
       }
       this.renderableMap.delete(id)
 
@@ -1058,6 +1158,7 @@ export abstract class Renderable extends EventEmitter {
       if (index !== -1) {
         this.renderableArray.splice(index, 1)
       }
+      this.childrenPrimarySortDirty = true
     }
   }
 
@@ -1067,16 +1168,73 @@ export abstract class Renderable extends EventEmitter {
   }
 
   public getChildren(): Renderable[] {
-    if (this.childHost !== this) return this.childHost.getChildren()
     return [...this.renderableArray]
   }
 
-  public render(buffer: OptimizedBuffer, deltaTime: number): void {
+  public getChildrenCount(): number {
+    return this.renderableArray.length
+  }
+
+  public updateLayout(deltaTime: number, renderList: RenderCommand[] = []): void {
     if (!this.visible) return
 
-    this.beforeRender()
+    this.onUpdate(deltaTime)
+
+    // NOTE: worst case updateFromLayout is called throughout the whole tree,
+    // which currently still has yoga performance issues.
+    // This can be mitigated at some point when the layout tree moved to native,
+    // as in the native yoga tree we can use events during the calculateLayout phase,
+    // and anctually know if a child has changed or not.
+    // That would allow us to to generate optimised render commands,
+    // including the layout updates, in one pass.
     this.updateFromLayout()
 
+    renderList.push({ action: "render", renderable: this })
+
+    // Note: This will update newly added children, but not their children.
+    // It is meant to make sure children update the layout, even though they may not be in the viewport
+    // and filtered out for updates like for the ScrollBox for example.
+    if (this._newChildren.length > 0) {
+      for (const child of this._newChildren) {
+        child.updateFromLayout()
+      }
+      this._newChildren = []
+    }
+
+    // NOTE: This is a hack to force layout updates for children that were after the anchor index,
+    // related to the the layout constraints described above and elsewhere.
+    // Simpler would be to just update all children in that case, but also expensive for a long list of children.
+    if (this._forceLayoutUpdateFor) {
+      for (const child of this._forceLayoutUpdateFor) {
+        child.updateFromLayout()
+      }
+      this._forceLayoutUpdateFor = null
+    }
+
+    this.ensureZIndexSorted()
+
+    const shouldPushScissor = this._overflow !== "visible" && this.width > 0 && this.height > 0
+    if (shouldPushScissor) {
+      const scissorRect = this.getScissorRect()
+      renderList.push({
+        action: "pushScissorRect",
+        x: scissorRect.x,
+        y: scissorRect.y,
+        width: scissorRect.width,
+        height: scissorRect.height,
+      })
+    }
+
+    for (const child of this._getChildren()) {
+      child.updateLayout(deltaTime, renderList)
+    }
+
+    if (shouldPushScissor) {
+      renderList.push({ action: "popScissorRect" })
+    }
+  }
+
+  public render(buffer: OptimizedBuffer, deltaTime: number): void {
     let renderBuffer = buffer
     if (this.buffered && this.frameBuffer) {
       renderBuffer = this.frameBuffer
@@ -1094,20 +1252,28 @@ export abstract class Renderable extends EventEmitter {
 
     this.markClean()
     this._ctx.addToHitGrid(this.x, this.y, this.width, this.height, this.num)
-    this.ensureZIndexSorted()
-
-    for (const child of this.renderableArray) {
-      child.render(renderBuffer, deltaTime)
-    }
 
     if (this.buffered && this.frameBuffer) {
       buffer.drawFrameBuffer(this.x, this.y, this.frameBuffer)
     }
   }
 
-  protected beforeRender(): void {
+  protected _getChildren(): Renderable[] {
+    return this.renderableArray
+  }
+
+  protected onUpdate(deltaTime: number): void {
     // Default implementation: do nothing
     // Override this method to provide custom rendering
+  }
+
+  protected getScissorRect(): { x: number; y: number; width: number; height: number } {
+    return {
+      x: this.buffered ? 0 : this.x,
+      y: this.buffered ? 0 : this.y,
+      width: this.width,
+      height: this.height,
+    }
   }
 
   protected renderSelf(buffer: OptimizedBuffer, deltaTime: number): void {
@@ -1115,7 +1281,17 @@ export abstract class Renderable extends EventEmitter {
     // Override this method to provide custom rendering
   }
 
+  public get isDestroyed(): boolean {
+    return this._isDestroyed
+  }
+
   public destroy(): void {
+    if (this._isDestroyed) {
+      return
+    }
+
+    this._isDestroyed = true
+
     if (this.parent) {
       this.parent.remove(this.id)
     }
@@ -1126,26 +1302,26 @@ export abstract class Renderable extends EventEmitter {
     }
 
     for (const child of this.renderableArray) {
-      child.parent = null
-      child.destroy()
+      this.remove(child.id)
     }
 
     this.renderableArray = []
     this.renderableMap.clear()
     Renderable.renderablesByNumber.delete(this.num)
 
-    this.layoutNode.destroy()
     this.blur()
     this.removeAllListeners()
 
     this.destroySelf()
+    this.layoutNode.destroy()
   }
 
   public destroyRecursively(): void {
-    this.destroy()
+    // Destroy children first to ensure removal as destroy clears child array
     for (const child of this.renderableArray) {
       child.destroyRecursively()
     }
+    this.destroy()
   }
 
   protected destroySelf(): void {
@@ -1158,7 +1334,7 @@ export abstract class Renderable extends EventEmitter {
     this._mouseListeners[event.type]?.call(this, event)
     this.onMouseEvent(event)
 
-    if (this.parent && !event.defaultPrevented) {
+    if (this.parent && !event.propagationStopped) {
       this.parent.processMouseEvent(event)
     }
   }
@@ -1226,6 +1402,13 @@ export abstract class Renderable extends EventEmitter {
     return this._keyListeners["down"]
   }
 
+  public set onSizeChange(handler: (() => void) | undefined) {
+    this._sizeChangeListener = handler
+  }
+  public get onSizeChange(): (() => void) | undefined {
+    return this._sizeChangeListener
+  }
+
   private applyEventOptions(options: RenderableOptions<Renderable>): void {
     this.onMouse = options.onMouse
     this.onMouseDown = options.onMouseDown
@@ -1238,11 +1421,36 @@ export abstract class Renderable extends EventEmitter {
     this.onMouseOut = options.onMouseOut
     this.onMouseScroll = options.onMouseScroll
     this.onKeyDown = options.onKeyDown
+    this.onSizeChange = options.onSizeChange
   }
 }
 
+interface RenderCommandBase {
+  action: "render" | "pushScissorRect" | "popScissorRect"
+}
+
+interface RenderCommandPushScissorRect extends RenderCommandBase {
+  action: "pushScissorRect"
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface RenderCommandPopScissorRect extends RenderCommandBase {
+  action: "popScissorRect"
+}
+
+interface RenderCommandRender extends RenderCommandBase {
+  action: "render"
+  renderable: Renderable
+}
+
+export type RenderCommand = RenderCommandPushScissorRect | RenderCommandPopScissorRect | RenderCommandRender
+
 export class RootRenderable extends Renderable {
   private yogaConfig: Config
+  private renderList: RenderCommand[] = []
 
   constructor(ctx: RenderContext) {
     super(ctx, { id: "__root__", zIndex: 0, visible: true, width: ctx.width, height: ctx.height, enableLayout: true })
@@ -1261,6 +1469,47 @@ export class RootRenderable extends Renderable {
     this.layoutNode.yogaNode.setFlexDirection(FlexDirection.Column)
 
     this.calculateLayout()
+  }
+
+  public render(buffer: OptimizedBuffer, deltaTime: number): void {
+    if (!this.visible) return
+
+    // 0. Run lifecycle pass
+    for (const renderable of this._ctx.getLifecyclePasses()) {
+      renderable.onLifecyclePass?.call(renderable)
+    }
+
+    // NOTE: Strictly speaking, this is a 3-pass rendering process:
+    // 1. Calculate layout from root
+    // 2. Update layout throughout the tree and collect render list
+    // 3. Render all collected renderables
+    // Should be 2-pass by hooking into the calculateLayout phase,
+    // but that's only possible if we move the layout tree to native.
+
+    // 1. Calculate layout from root
+    if (this.layoutNode.yogaNode.isDirty()) {
+      this.calculateLayout()
+    }
+
+    // 2. Update layout throughout the tree and collect render list
+    this.renderList.length = 0
+    this.updateLayout(deltaTime, this.renderList)
+
+    // 3. Render all collected renderables
+    for (let i = 1; i < this.renderList.length; i++) {
+      const command = this.renderList[i]
+      switch (command.action) {
+        case "render":
+          command.renderable.render(buffer, deltaTime)
+          break
+        case "pushScissorRect":
+          buffer.pushScissorRect(command.x, command.y, command.width, command.height)
+          break
+        case "popScissorRect":
+          buffer.popScissorRect()
+          break
+      }
+    }
   }
 
   protected propagateLiveCount(delta: number): void {
@@ -1286,23 +1535,11 @@ export class RootRenderable extends Renderable {
     this.emit(LayoutEvents.RESIZED, { width, height })
   }
 
-  protected beforeRender(): void {
-    if (this.layoutNode.yogaNode.isDirty()) {
-      this.calculateLayout()
-    }
-  }
-
   protected destroySelf(): void {
-    if (this.layoutNode) {
-      this.layoutNode.destroy()
-    }
-
     try {
       this.yogaConfig.free()
     } catch (error) {
       // Config might already be freed
     }
-
-    super.destroySelf()
   }
 }

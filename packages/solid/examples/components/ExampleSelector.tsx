@@ -1,12 +1,15 @@
-import { measureText, TextRenderable } from "@opentui/core"
-import { useTerminalDimensions, useRenderer, useKeyHandler } from "@opentui/solid"
-import { createSignal, Show, onMount, Switch, Match } from "solid-js"
+import { measureText } from "@opentui/core"
+import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
+import { createSignal, Match, onMount, Switch } from "solid-js"
+import { Session } from "../session.tsx"
 import { SplitModeDemo } from "./animation-demo.tsx"
+import ExtendDemo from "./extend-demo.tsx"
 import InputScene from "./input-demo.tsx"
 import MouseScene from "./mouse-demo.tsx"
-import TextStyleScene from "./text-style-demo.tsx"
-import TextSelectionDemo from "./text-selection-demo.tsx"
+import { ScrollDemo, ScrollDemoIndex } from "./scroll-demo.tsx"
 import TabSelectDemo from "./tab-select-demo.tsx"
+import TextSelectionDemo from "./text-selection-demo.tsx"
+import TextStyleScene from "./text-style-demo.tsx"
 
 const EXAMPLES = [
   {
@@ -39,6 +42,26 @@ const EXAMPLES = [
     description: "Tab selection demo",
     scene: "tab-select-demo",
   },
+  {
+    name: "Extend Demo",
+    description: "Extend demo",
+    scene: "extend-demo",
+  },
+  {
+    name: "Scroll Demo",
+    description: "Scroll demo",
+    scene: "scroll-demo",
+  },
+  {
+    name: "Scroll Demo Index",
+    description: "Scroll demo Index",
+    scene: "scroll-demo-index",
+  },
+  {
+    name: "Session Scrollbox",
+    description: "Live message stream with chunked arrival simulation",
+    scene: "session-scrollbox",
+  },
 ]
 
 const ExampleSelector = () => {
@@ -62,7 +85,7 @@ const ExampleSelector = () => {
     setSelected(idx)
   }
 
-  useKeyHandler((key) => {
+  useKeyboard((key) => {
     switch (key.name) {
       case "escape":
         setSelected(-1)
@@ -108,6 +131,18 @@ const ExampleSelector = () => {
       </Match>
       <Match when={selectedScene() === "tab-select-demo"}>
         <TabSelectDemo />
+      </Match>
+      <Match when={selectedScene() === "extend-demo"}>
+        <ExtendDemo />
+      </Match>
+      <Match when={selectedScene() === "scroll-demo"}>
+        <ScrollDemo />
+      </Match>
+      <Match when={selectedScene() === "scroll-demo-index"}>
+        <ScrollDemoIndex />
+      </Match>
+      <Match when={selectedScene() === "session-scrollbox"}>
+        <Session />
       </Match>
       <Match when={selected() === -1}>
         <box style={{ height: terminalDimensions().height, backgroundColor: "#001122", padding: 1 }}>

@@ -24,6 +24,8 @@ import * as opentuiDemo from "./opentui-demo"
 import * as nestedZIndexDemo from "./nested-zindex-demo"
 import * as relativePositioningDemo from "./relative-positioning-demo"
 import * as transparencyDemo from "./transparency-demo"
+import * as scrollExample from "./scroll-example"
+import * as stickyScrollExample from "./sticky-scroll-example"
 import * as shaderCubeExample from "./shader-cube-demo"
 import * as spriteAnimationExample from "./sprite-animation-demo"
 import * as spriteParticleExample from "./sprite-particle-generator-demo"
@@ -45,7 +47,7 @@ import * as vnodeCompositionDemo from "./vnode-composition-demo"
 import * as hastSyntaxHighlightingExample from "./hast-syntax-highlighting-demo"
 import * as liveStateExample from "./live-state-demo"
 import * as fullUnicodeExample from "./full-unicode-demo"
-import * as listExample from "./list-demo"
+import * as textNodeDemo from "./text-node-demo"
 import { getKeyHandler } from "../lib/KeyHandler"
 import { setupCommonDemoKeys } from "./lib/standalone-keys"
 
@@ -86,6 +88,12 @@ const examples: Example[] = [
     description: "Template literals with styled text, colors, and formatting",
     run: styledTextExample.run,
     destroy: styledTextExample.destroy,
+  },
+  {
+    name: "TextNode Demo",
+    description: "TextNode API for building complex styled text structures",
+    run: textNodeDemo.run,
+    destroy: textNodeDemo.destroy,
   },
   {
     name: "HAST Syntax Highlighting Demo",
@@ -172,6 +180,18 @@ const examples: Example[] = [
     destroy: textureLoadingExample.destroy,
   },
   {
+    name: "ScrollBox Demo",
+    description: "Scrollable container with customization",
+    run: scrollExample.run,
+    destroy: scrollExample.destroy,
+  },
+  {
+    name: "Sticky Scroll Demo",
+    description: "ScrollBox with sticky scroll behavior - maintains position at borders when content changes",
+    run: stickyScrollExample.run,
+    destroy: stickyScrollExample.destroy,
+  },
+  {
     name: "Shader Cube",
     description: "3D cube with custom shaders",
     run: shaderCubeExample.run,
@@ -224,11 +244,6 @@ const examples: Example[] = [
     description: "Interactive InputElement demo with validation and multiple fields",
     run: inputExample.run,
     destroy: inputExample.destroy,
-  },
-  {
-    name: "List Demo",
-    description: "Interactive list component with vertical/horizontal scrolling, selection, and disabled items",
-    run: listExample.default,
   },
   {
     name: "VNode Composition Demo",
