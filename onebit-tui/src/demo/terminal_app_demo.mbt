@@ -24,7 +24,7 @@ pub fn run_terminal_app() -> Unit {
           let mut editor_content = ""
           let mut cursor_x = 0
           let mut cursor_y = 0
-          let mut command_history : Array[String] = []
+          let command_history : Array[String] = []
           let mut command_input = ""
           let mut status_message = "Ready"
           
@@ -335,7 +335,7 @@ fn draw_terminal(
 
 // Helper function to split string into lines
 fn split_lines(s : String) -> Array[String] {
-  let mut lines : Array[String] = []
+  let lines : Array[String] = []
   let mut current = ""
   
   for i = 0; i < s.length(); i = i + 1 {

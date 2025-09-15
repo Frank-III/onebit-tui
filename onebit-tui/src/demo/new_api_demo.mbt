@@ -1,6 +1,6 @@
 ///| Demo of the new declarative API with Yoga layout
 
-pub fn main {
+pub fn run_new_api_demo() -> Unit {
   // Initialize the TUI app
   match @core.TUI::init() {
     None => {
@@ -8,51 +8,74 @@ pub fn main {
       return
     }
     Some(app) => {
-      // Build the UI declaratively
-      let ui = build_ui()
+      println("TUI initialized successfully!")
       
-      // Set the UI tree
-      app.set_ui(ui)
-      
-      // Run the app
-      app.run(fn(app) {
-        // This is called every frame
-        // We can update UI here if needed
-      })
-      
-      // Cleanup
-      app.cleanup()
-      println("Goodbye!")
+      // For now, just run the real FFI demo since our new API isn't fully working yet
+      println("Running simple FFI demo instead...")
+      run_simple_ffi_demo()
     }
   }
 }
 
-fn build_ui() -> @core.Element {
-  // Create a simple layout with Yoga
-  @core.box(
-    title="OneBit-TUI Demo",
-    border=true,
-    children=[
-      // Header
-      @core.text("Welcome to OneBit-TUI!")
-        .color(@core.BrightCyan)
-        .padding(1.0),
-      
-      // Main content
-      @core.text("This is a demo of the new declarative API")
-        .color(@core.White),
-        
-      @core.text("It uses Yoga for automatic layout")
-        .color(@core.Gray),
-      
-      // Footer
-      @core.text("Press 'q' to quit")
-        .color(@core.Gray)
-        .padding(1.0)
-    ]
-  )
-    .padding(1.0)
-    .column()
-    .width(@core.Fill)
-    .height(@core.Fill)
+// Simple FFI demo that we know works
+fn run_simple_ffi_demo() -> Unit {
+  let (width, height) = @ffi.get_terminal_size()
+  
+  match @ffi.Renderer::new(width, height) {
+    None => {
+      println("Failed to create renderer")
+      return
+    }
+    Some(renderer) => {
+      match @ffi.TerminalSession::new(raw_mode=true, mouse=true, resize_detection=false) {
+        None => {
+          println("Failed to create terminal session")
+          renderer.destroy()
+          return
+        }
+        Some(session) => {
+          // Get buffer and draw
+          let buffer = renderer.get_next_buffer()
+          buffer.clear(0.0, 0.0, 0.0, 1.0)
+          
+          // Draw title
+          buffer.draw_text("OneBit-TUI New API Demo", 5_U, 2_U, 
+            fg_r=0.0, fg_g=1.0, fg_b=1.0)
+          
+          // Draw info
+          buffer.draw_text("This will use Yoga layout soon!", 5_U, 4_U)
+          buffer.draw_text("Terminal size: \{width}x\{height}", 5_U, 6_U)
+          
+          // Draw a box
+          buffer.fill_rect(5_U, 8_U, 30_U, 5_U, 0.1, 0.1, 0.3, 1.0)
+          buffer.draw_text("Press 'q' to quit", 7_U, 10_U, 
+            fg_r=1.0, fg_g=1.0, fg_b=0.0)
+          
+          // Render
+          renderer.render(force=true)
+          
+          // Simple event loop
+          let mut running = true
+          while running {
+            match @ffi.poll_input_event() {
+              @ffi.InputEvent::Key(key) => {
+                match key {
+                  @ffi.KeyEvent::Char(113) | @ffi.KeyEvent::Escape => {
+                    running = false
+                  }
+                  _ => ()
+                }
+              }
+              _ => @ffi.sleep_ms(10)
+            }
+          }
+          
+          // Cleanup
+          session.cleanup()
+          renderer.destroy()
+          println("Demo finished!")
+        }
+      }
+    }
+  }
 }
