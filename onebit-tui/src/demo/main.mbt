@@ -3,6 +3,6 @@
 fn main {
   println("=== OneBit-TUI Demo ===")
 
-  // Run simple UI demo that works
-  run_simple_ui_demo()
+  // Run DSL demo to show the clean API
+  run_dsl_demo()
 }
