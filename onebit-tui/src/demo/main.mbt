@@ -3,6 +3,6 @@
 fn main {
   println("=== OneBit-TUI Demo ===")
 
-  // Run the simple UI demo that works
+  // Run simple UI demo that works
   run_simple_ui_demo()
 }

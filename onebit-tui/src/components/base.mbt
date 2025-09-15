@@ -35,6 +35,8 @@ pub fn Box::with_color(self : Box, color : @core.Color) -> Box {
   { ..self, color, }
 }
 
+// Implement Component methods for Box
+
 ///|
 impl Component for Box with render(self, app, x, y) {
   // Draw the box background
@@ -73,6 +75,8 @@ pub fn Text::new(content : String) -> Text {
 pub fn Text::with_color(self : Text, color : @core.Color) -> Text {
   { ..self, color, }
 }
+
+// Implement Component methods for Text  
 
 ///|
 impl Component for Text with render(self, app, x, y) {
