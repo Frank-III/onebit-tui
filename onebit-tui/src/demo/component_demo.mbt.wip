@@ -1,0 +1,83 @@
+///| Component Demo - Test the new Element trait system
+
+pub fn run_component_demo() -> Unit {
+  println("Starting Component Demo...")
+  
+  // Initialize renderer
+  let (width, height) = @ffi.get_terminal_size()
+  match @ffi.Renderer::new(width, height) {
+    None => {
+      println("Failed to create renderer")
+      return
+    }
+    Some(renderer) => {
+      // Create UI structure
+      let ui = build_ui()
+      
+      // Get buffer for rendering
+      let buffer = renderer.get_next_buffer()
+      
+      // Clear background
+      buffer.clear(0.05, 0.05, 0.1, 1.0)
+      
+      // Measure and layout
+      let constraints = @core.Constraints::max(
+        width.reinterpret_as_int(), 
+        height.reinterpret_as_int()
+      )
+      let size = ui.measure(constraints)
+      println("UI measured size: \{size.width}x\{size.height}")
+      
+      // Layout at top-left
+      let bounds = @core.Rect::new(0, 0, size.width, size.height)
+      ui.layout(bounds)
+      
+      // Render
+      ui.render(buffer, bounds)
+      
+      // Display
+      renderer.render(force=true)
+      
+      // Wait for user to see
+      @ffi.sleep_ms(5000)
+      
+      // Cleanup
+      renderer.destroy()
+      println("Component demo complete!")
+    }
+  }
+}
+
+fn build_ui() -> &@core.Component {
+  // Create a box with border and padding
+  let main_box = @core.Box::new()
+    |> _.border(@core.BorderStyle::Rounded)
+    |> _.title("Component Demo")
+    |> _.padding(@core.Spacing::all(2))
+    |> _.background(@core.Color::Blue)
+  
+  // Add some text elements
+  let title_text = @core.Text::new("Welcome to OneBit-TUI!")
+    |> _.color(@core.Color::BrightYellow)
+    |> _.bold()
+  
+  let desc_text = @core.Text::new("This is a demo of the new component system.\nIt uses trait objects for composition.")
+    |> _.color(@core.Color::White)
+  
+  let info_text = @core.Text::new("Features:\n• Type-safe components\n• Flexible layout\n• Easy styling")
+    |> _.color(@core.Color::BrightCyan)
+  
+  // Create nested boxes  
+  let inner_box = @core.Box::new()
+    |> _.border(@core.BorderStyle::Single)
+    |> _.padding(@core.Spacing::all(1))
+    |> _.child(info_text as &@core.Component)
+  
+  // Build the hierarchy
+  main_box
+    |> _.child(title_text as &@core.Component)
+    |> _.child(desc_text as &@core.Component)
+    |> _.child(inner_box as &@core.Component)
+  
+  main_box as &@core.Component
+}

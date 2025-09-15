@@ -1,0 +1,366 @@
+///| Box Component - Container with borders, padding, and background
+
+pub struct Box {
+  mut children : Array[&Component]  // Use trait object with reference!
+  mut style : TextStyle
+  mut borders : Borders
+  mut padding : Spacing
+  mut background : Color?
+  mut title : String?
+  mut focused : Bool
+  // Cached layout
+  mut bounds : Rect?
+  mut child_bounds : Array[Rect]
+}
+
+pub fn Box::new() -> Box {
+  {
+    children: [],
+    style: TextStyle::default(),
+    borders: Borders::none(),
+    padding: Spacing::zero(),
+    background: None,
+    title: None,
+    focused: false,
+    bounds: None,
+    child_bounds: []
+  }
+}
+
+// Builder methods
+pub fn Box::border(self : Box, style : BorderStyle) -> Box {
+  self.borders = Borders::all(style)
+  self
+}
+
+pub fn Box::padding(self : Box, padding : Spacing) -> Box {
+  self.padding = padding
+  self
+}
+
+pub fn Box::background(self : Box, color : Color) -> Box {
+  self.background = Some(color)
+  self
+}
+
+pub fn Box::title(self : Box, title : String) -> Box {
+  self.title = Some(title)
+  self
+}
+
+pub fn Box::child(self : Box, component : &Component) -> Box {
+  self.children.push(component)
+  self
+}
+
+pub fn Box::children(self : Box, components : Array[&Component]) -> Box {
+  self.children = components
+  self
+}
+
+// Helper to get border characters
+fn get_border_chars(style : BorderStyle) -> (UInt, UInt, UInt, UInt, UInt, UInt, UInt, UInt) {
+  match style {
+    BorderStyle::Single => 
+      // ┌ ─ ┐ │ │ └ ─ ┘
+      (0x250C, 0x2500, 0x2510, 0x2502, 0x2502, 0x2514, 0x2500, 0x2518)
+    BorderStyle::Double =>
+      // ╔ ═ ╗ ║ ║ ╚ ═ ╝
+      (0x2554, 0x2550, 0x2557, 0x2551, 0x2551, 0x255A, 0x2550, 0x255D)
+    BorderStyle::Rounded =>
+      // ╭ ─ ╮ │ │ ╰ ─ ╯
+      (0x256D, 0x2500, 0x256E, 0x2502, 0x2502, 0x2570, 0x2500, 0x256F)
+    BorderStyle::Thick =>
+      // ┏ ━ ┓ ┃ ┃ ┗ ━ ┛
+      (0x250F, 0x2501, 0x2513, 0x2503, 0x2503, 0x2517, 0x2501, 0x251B)
+    BorderStyle::None =>
+      (0, 0, 0, 0, 0, 0, 0, 0)
+  }
+}
+
+impl Component for Box with
+  measure(self : Box, constraints : Constraints) -> Size {
+    let mut width = 0
+    let mut height = 0
+    
+    // Calculate border space
+    let border_width = if self.borders.left { 1 } else { 0 } + 
+                      if self.borders.right { 1 } else { 0 }
+    let border_height = if self.borders.top { 1 } else { 0 } + 
+                       if self.borders.bottom { 1 } else { 0 }
+    
+    // Calculate total padding
+    let padding_width = self.padding.left + self.padding.right
+    let padding_height = self.padding.top + self.padding.bottom
+    
+    // Create constraints for children
+    let child_constraints = {
+      min_width: match constraints.min_width {
+        Some(w) => Some(w - border_width - padding_width)
+        None => None
+      },
+      max_width: match constraints.max_width {
+        Some(w) => Some(w - border_width - padding_width)
+        None => None
+      },
+      min_height: match constraints.min_height {
+        Some(h) => Some(h - border_height - padding_height)
+        None => None
+      },
+      max_height: match constraints.max_height {
+        Some(h) => Some(h - border_height - padding_height)
+        None => None
+      }
+    }
+    
+    // Measure children (simple vertical stack for now)
+    for i = 0; i < self.children.length(); i = i + 1 {
+      let child = self.children[i]
+      let child_size = child.measure(child_constraints)
+      width = if child_size.width > width { child_size.width } else { width }
+      height = height + child_size.height
+    }
+    
+    // Add padding and borders
+    width = width + padding_width + border_width
+    height = height + padding_height + border_height
+    
+    // Apply constraints
+    constrain_size({ width, height }, constraints)
+  }
+  
+  layout(self : Box, bounds : Rect) -> Unit {
+    self.bounds = Some(bounds)
+    self.child_bounds = []
+    
+    // Calculate content area (inside borders and padding)
+    let mut content_rect = bounds
+    
+    // Inset for borders
+    if self.borders.style != BorderStyle::None {
+      content_rect = content_rect.inset(
+        if self.borders.top { 1 } else { 0 },
+        if self.borders.right { 1 } else { 0 },
+        if self.borders.bottom { 1 } else { 0 },
+        if self.borders.left { 1 } else { 0 }
+      )
+    }
+    
+    // Inset for padding
+    content_rect = content_rect.inset(
+      self.padding.top,
+      self.padding.right,
+      self.padding.bottom,
+      self.padding.left
+    )
+    
+    // Layout children (vertical stack)
+    let mut y = content_rect.y
+    for i = 0; i < self.children.length(); i = i + 1 {
+      let child = self.children[i]
+      let mut child_bounds = {
+        x: content_rect.x,
+        y,
+        width: content_rect.width,
+        height: 0  // Will be set by child
+      }
+      
+      // Measure child to get height
+      let child_size = child.measure(Constraints::max(content_rect.width, content_rect.height))
+      child_bounds.height = child_size.height
+      
+      // Layout child
+      child.layout(child_bounds)
+      self.child_bounds.push(child_bounds)
+      
+      y = y + child_size.height
+    }
+  }
+  
+  render(self : Box, buffer : @ffi.Buffer, bounds : Rect) -> Unit {
+    // Draw background
+    match self.background {
+      Some(bg_color) => {
+        let (r, g, b) = color_to_rgb(bg_color)
+        buffer.fill_rect(
+          bounds.x.reinterpret_as_uint(),
+          bounds.y.reinterpret_as_uint(),
+          bounds.width.reinterpret_as_uint(),
+          bounds.height.reinterpret_as_uint(),
+          r, g, b, 1.0
+        )
+      }
+      None => ()
+    }
+    
+    // Draw border
+    if self.borders.style != BorderStyle::None {
+      let (tl, t, tr, l, r, bl, b, br) = get_border_chars(self.borders.style)
+      let border_color = match self.borders.color {
+        Some(c) => c
+        None => match self.style.foreground {
+          Some(c) => c
+          None => Color::White
+        }
+      }
+      let (fg_r, fg_g, fg_b) = color_to_rgb(border_color)
+      
+      // Top border
+      if self.borders.top {
+        // Top-left corner
+        buffer.draw_text(
+          Char::from_int(tl.reinterpret_as_int()).to_string(),
+          bounds.x.reinterpret_as_uint(),
+          bounds.y.reinterpret_as_uint(),
+          fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+        )
+        
+        // Top line
+        for x = 1; x < bounds.width - 1; x = x + 1 {
+          buffer.draw_text(
+            Char::from_int(t.reinterpret_as_int()).to_string(),
+            (bounds.x + x).reinterpret_as_uint(),
+            bounds.y.reinterpret_as_uint(),
+            fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+          )
+        }
+        
+        // Top-right corner
+        buffer.draw_text(
+          Char::from_int(tr.reinterpret_as_int()).to_string(),
+          (bounds.x + bounds.width - 1).reinterpret_as_uint(),
+          bounds.y.reinterpret_as_uint(),
+          fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+        )
+        
+        // Draw title if present
+        match self.title {
+          Some(title) => {
+            let title_x = bounds.x + 2  // Start 2 chars from left
+            buffer.draw_text(
+              " " + title + " ",
+              title_x.reinterpret_as_uint(),
+              bounds.y.reinterpret_as_uint(),
+              fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+            )
+          }
+          None => ()
+        }
+      }
+      
+      // Side borders
+      for y = 1; y < bounds.height - 1; y = y + 1 {
+        if self.borders.left {
+          buffer.draw_text(
+            Char::from_int(l.reinterpret_as_int()).to_string(),
+            bounds.x.reinterpret_as_uint(),
+            (bounds.y + y).reinterpret_as_uint(),
+            fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+          )
+        }
+        
+        if self.borders.right {
+          buffer.draw_text(
+            Char::from_int(r.reinterpret_as_int()).to_string(),
+            (bounds.x + bounds.width - 1).reinterpret_as_uint(),
+            (bounds.y + y).reinterpret_as_uint(),
+            fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+          )
+        }
+      }
+      
+      // Bottom border
+      if self.borders.bottom {
+        // Bottom-left corner
+        buffer.draw_text(
+          Char::from_int(bl.reinterpret_as_int()).to_string(),
+          bounds.x.reinterpret_as_uint(),
+          (bounds.y + bounds.height - 1).reinterpret_as_uint(),
+          fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+        )
+        
+        // Bottom line
+        for x = 1; x < bounds.width - 1; x = x + 1 {
+          buffer.draw_text(
+            Char::from_int(b.reinterpret_as_int()).to_string(),
+            (bounds.x + x).reinterpret_as_uint(),
+            (bounds.y + bounds.height - 1).reinterpret_as_uint(),
+            fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+          )
+        }
+        
+        // Bottom-right corner
+        buffer.draw_text(
+          Char::from_int(br.reinterpret_as_int()).to_string(),
+          (bounds.x + bounds.width - 1).reinterpret_as_uint(),
+          (bounds.y + bounds.height - 1).reinterpret_as_uint(),
+          fg_r=fg_r, fg_g=fg_g, fg_b=fg_b
+        )
+      }
+    }
+    
+    // Render children with clipping
+    if self.children.length() > 0 {
+      // Set up clipping region for content
+      let content_rect = match self.bounds {
+        Some(b) => {
+          let mut rect = b
+          if self.borders.style != BorderStyle::None {
+            rect = rect.inset(
+              if self.borders.top { 1 } else { 0 },
+              if self.borders.right { 1 } else { 0 },
+              if self.borders.bottom { 1 } else { 0 },
+              if self.borders.left { 1 } else { 0 }
+            )
+          }
+          rect = rect.inset(
+            self.padding.top,
+            self.padding.right,
+            self.padding.bottom,
+            self.padding.left
+          )
+          rect
+        }
+        None => bounds
+      }
+      
+      // Push scissor rect for clipping
+      buffer.push_clip(
+        content_rect.x,
+        content_rect.y,
+        content_rect.width.reinterpret_as_uint(),
+        content_rect.height.reinterpret_as_uint()
+      )
+      
+      // Render children
+      for i = 0; i < self.children.length(); i = i + 1 {
+        if i < self.child_bounds.length() {
+          let child = self.children[i]
+          child.render(buffer, self.child_bounds[i])
+        }
+      }
+      
+      // Pop scissor rect
+      buffer.pop_clip()
+    }
+  }
+  
+  handle_event(self : Box, event : @ffi.InputEvent) -> EventResult {
+    // Pass events to children
+    for i = 0; i < self.children.length(); i = i + 1 {
+      let child = self.children[i]
+      match child.handle_event(event) {
+        EventResult::Consumed => return EventResult::Consumed
+        EventResult::Ignored => ()
+      }
+    }
+    EventResult::Ignored
+  }
+  
+  is_focused(self : Box) -> Bool {
+    self.focused
+  }
+  
+  set_focused(self : Box, focused : Bool) -> Unit {
+    self.focused = focused
+  }

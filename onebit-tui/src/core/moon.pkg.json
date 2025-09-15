@@ -5,6 +5,18 @@
     "moonbit-community/onebit-yoga/wrapper",
     { "path": "moonbit-community/onebit-yoga/ffi", "alias": "yoga_ffi" }
   ],
-  "exports": ["buffer", "types", "events", "renderable", "view", "view_impl", "renderer", "ui_builder", "ui_traits", "app", "keys"],
+  "exports": [
+    "buffer",
+    "types",
+    "events",
+    "renderable",
+    "view",
+    "view_impl",
+    "renderer",
+    "ui_builder",
+    "ui_traits",
+    "app",
+    "keys"
+  ],
   "warn-list": "-0001-0002-0004-0006-0008-0009-0013-0015-0019-0022"
 }

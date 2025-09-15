@@ -1,34 +1,108 @@
 ///| Extended FFI bindings for terminal input and control
-///| These are critical for interactive TUI applications
+
+///|
+/// These are critical for interactive TUI applications
 
 // Keyboard input functions (mouse functions already in terminal_ffi.mbt)
-extern "C" fn enableKittyKeyboardR(renderer : RendererPtr, flags : Byte) -> Unit = "enableKittyKeyboard"
+extern "C" fn enableKittyKeyboardR(
+  renderer : RendererPtr,
+  flags : Byte,
+) -> Unit = "enableKittyKeyboard"
+
+///|
 extern "C" fn disableKittyKeyboardR(renderer : RendererPtr) -> Unit = "disableKittyKeyboard"
 
 // Terminal capabilities
-extern "C" fn getTerminalCapabilitiesR(renderer : RendererPtr, caps_ptr : TerminalCapabilitiesPtr) -> Unit = "getTerminalCapabilities"
-extern "C" fn processCapabilityResponseR(renderer : RendererPtr, response : Bytes, response_len : UInt) -> Unit = "processCapabilityResponse"
+
+///|
+extern "C" fn getTerminalCapabilitiesR(
+  renderer : RendererPtr,
+  caps_ptr : TerminalCapabilitiesPtr,
+) -> Unit = "getTerminalCapabilities"
+
+///|
+extern "C" fn processCapabilityResponseR(
+  renderer : RendererPtr,
+  response : Bytes,
+  response_len : UInt,
+) -> Unit = "processCapabilityResponse"
 
 // Cursor control
-extern "C" fn setCursorPositionR(renderer : RendererPtr, x : Int, y : Int, visible : Bool) -> Unit = "setCursorPosition"
-extern "C" fn setCursorStyleR(renderer : RendererPtr, style : Bytes, style_len : UInt, blinking : Bool) -> Unit = "setCursorStyle"
+
+///|
+extern "C" fn setCursorPositionR(
+  renderer : RendererPtr,
+  x : Int,
+  y : Int,
+  visible : Bool,
+) -> Unit = "setCursorPosition"
+
+///|
+extern "C" fn setCursorStyleR(
+  renderer : RendererPtr,
+  style : Bytes,
+  style_len : UInt,
+  blinking : Bool,
+) -> Unit = "setCursorStyle"
+
+///|
 extern "C" fn setCursorColorR(renderer : RendererPtr, color : Color) -> Unit = "setCursorColor"
 
 // Terminal management
+
+///|
 extern "C" fn clearTerminalR(renderer : RendererPtr) -> Unit = "clearTerminal"
-extern "C" fn setTerminalTitleR(renderer : RendererPtr, title : Bytes, title_len : UInt) -> Unit = "setTerminalTitle"
-extern "C" fn resizeRendererR(renderer : RendererPtr, width : UInt, height : UInt) -> Unit = "resizeRenderer"
-extern "C" fn setupTerminalR(renderer : RendererPtr, use_alternate_screen : Bool) -> Unit = "setupTerminal"
+
+///|
+extern "C" fn setTerminalTitleR(
+  renderer : RendererPtr,
+  title : Bytes,
+  title_len : UInt,
+) -> Unit = "setTerminalTitle"
+
+///|
+extern "C" fn resizeRendererR(
+  renderer : RendererPtr,
+  width : UInt,
+  height : UInt,
+) -> Unit = "resizeRenderer"
+
+///|
+extern "C" fn setupTerminalR(
+  renderer : RendererPtr,
+  use_alternate_screen : Bool,
+) -> Unit = "setupTerminal"
 
 // Hit testing for mouse events
-extern "C" fn addToHitGridR(renderer : RendererPtr, x : Int, y : Int, width : UInt, height : UInt, id : UInt) -> Unit = "addToHitGrid"
+
+///|
+extern "C" fn addToHitGridR(
+  renderer : RendererPtr,
+  x : Int,
+  y : Int,
+  width : UInt,
+  height : UInt,
+  id : UInt,
+) -> Unit = "addToHitGrid"
+
+///|
 extern "C" fn checkHitR(renderer : RendererPtr, x : UInt, y : UInt) -> UInt = "checkHit"
 
 // Debug functions
+
+///|
 extern "C" fn dumpHitGridR(renderer : RendererPtr) -> Unit = "dumpHitGrid"
-extern "C" fn setDebugOverlayR(renderer : RendererPtr, enabled : Bool, corner : Byte) -> Unit = "setDebugOverlay"
+
+///|
+extern "C" fn setDebugOverlayR(
+  renderer : RendererPtr,
+  enabled : Bool,
+  corner : Byte,
+) -> Unit = "setDebugOverlay"
 
 // Terminal capabilities structure  
+
+///|
 pub(all) struct TerminalCapabilities {
   supports_truecolor : Bool
   supports_unicode : Bool
@@ -38,52 +112,95 @@ pub(all) struct TerminalCapabilities {
   height : Int
 }
 
+///|
 type TerminalCapabilitiesPtr
 
 // Extension methods for Renderer (mouse methods already in terminal_ffi.mbt)
+
+///|
 pub fn Renderer::enable_kitty_keyboard(self : Renderer, flags : Byte) -> Unit {
   enableKittyKeyboardR(self.ptr, flags)
 }
 
+///|
 pub fn Renderer::disable_kitty_keyboard(self : Renderer) -> Unit {
   disableKittyKeyboardR(self.ptr)
 }
 
-pub fn Renderer::set_cursor_position(self : Renderer, x : Int, y : Int, visible : Bool) -> Unit {
-    setCursorPositionR(self.ptr, x, y, visible)
-  }
-  
-  pub fn Renderer::set_cursor_style_ext(self : Renderer, style : String, blinking : Bool) -> Unit {
-    let style_bytes = style.to_bytes()
-    setCursorStyleR(self.ptr, style_bytes, style_bytes.length().to_uint(), blinking)
-  }
-  
-  pub fn Renderer::set_cursor_color_ext(self : Renderer, r : Double, g : Double, b : Double, a : Double) -> Unit {
-    let color_array = FixedArray::make(4, 0.0)
-    color_array[0] = r
-    color_array[1] = g
-    color_array[2] = b
-    color_array[3] = a
-    setCursorColorR(self.ptr, color_array)
-  }
-  
-  pub fn set_terminal_title(self : Renderer, title : String) -> Unit {
-    let title_bytes = title.to_bytes()
-    setTerminalTitleR(self.ptr, title_bytes, title_bytes.length().to_uint())
-  }
-  
-  pub fn setup_terminal(self : Renderer, use_alternate_screen : Bool) -> Unit {
-    setupTerminalR(self.ptr, use_alternate_screen)
-  }
-  
-  pub fn add_hit_region(self : Renderer, x : Int, y : Int, width : Int, height : Int, id : Int) -> Unit {
-    addToHitGridR(self.ptr, x, y, width.to_uint(), height.to_uint(), id.to_uint())
-  }
-  
-  pub fn check_hit(self : Renderer, x : Int, y : Int) -> Int {
-    checkHitR(self.ptr, x.to_uint(), y.to_uint()).to_int()
-  }
-  
-pub fn Renderer::enable_debug_overlay(self : Renderer, enabled : Bool, corner : Byte) -> Unit {
+///|
+pub fn Renderer::set_cursor_position(
+  self : Renderer,
+  x : Int,
+  y : Int,
+  visible : Bool,
+) -> Unit {
+  setCursorPositionR(self.ptr, x, y, visible)
+}
+
+///|
+pub fn Renderer::set_cursor_style_ext(
+  self : Renderer,
+  style : String,
+  blinking : Bool,
+) -> Unit {
+  let style_bytes = style.to_bytes()
+  setCursorStyleR(
+    self.ptr,
+    style_bytes,
+    style_bytes.length().to_uint(),
+    blinking,
+  )
+}
+
+///|
+pub fn Renderer::set_cursor_color_ext(
+  self : Renderer,
+  r : Double,
+  g : Double,
+  b : Double,
+  a : Double,
+) -> Unit {
+  let color_array = FixedArray::make(4, 0.0)
+  color_array[0] = r
+  color_array[1] = g
+  color_array[2] = b
+  color_array[3] = a
+  setCursorColorR(self.ptr, color_array)
+}
+
+///|
+pub fn set_terminal_title(self : Renderer, title : String) -> Unit {
+  let title_bytes = title.to_bytes()
+  setTerminalTitleR(self.ptr, title_bytes, title_bytes.length().to_uint())
+}
+
+///|
+pub fn setup_terminal(self : Renderer, use_alternate_screen : Bool) -> Unit {
+  setupTerminalR(self.ptr, use_alternate_screen)
+}
+
+///|
+pub fn add_hit_region(
+  self : Renderer,
+  x : Int,
+  y : Int,
+  width : Int,
+  height : Int,
+  id : Int,
+) -> Unit {
+  addToHitGridR(self.ptr, x, y, width.to_uint(), height.to_uint(), id.to_uint())
+}
+
+///|
+pub fn check_hit(self : Renderer, x : Int, y : Int) -> Int {
+  checkHitR(self.ptr, x.to_uint(), y.to_uint()).to_int()
+}
+
+///|
+pub fn Renderer::enable_debug_overlay(
+  self : Renderer,
+  enabled : Bool,
+  corner : Byte,
+) -> Unit {
   setDebugOverlayR(self.ptr, enabled, corner)
 }

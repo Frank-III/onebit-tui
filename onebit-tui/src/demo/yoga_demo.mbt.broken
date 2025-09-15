@@ -1,0 +1,117 @@
+///| Demo showing Yoga layout integration
+
+pub fn run_yoga_demo() -> Unit {
+  println("Starting Yoga Layout Demo...")
+  
+  match @core.App::init() {
+    None => {
+      println("Failed to initialize app")
+      return
+    }
+    Some(app) => {
+      // Create Yoga nodes
+      let container = @wrapper.Node::new_with_config(app.yoga_config)
+      container.set_flex_direction(@types.FlexDirection::Row)
+      container.set_width(@types.Value::point(app.width.to_double().to_float()))
+      container.set_height(@types.Value::point(20.0))
+      container.set_padding(@types.Edge::All, @types.Value::point(2.0))
+      container.set_gap(@types.Gutter::All, 2.0)
+      
+      // Create three child boxes
+      let box1 = @wrapper.Node::new_with_config(app.yoga_config)
+      box1.set_flex_grow(1.0)
+      box1.set_height(@types.Value::point(10.0))
+      
+      let box2 = @wrapper.Node::new_with_config(app.yoga_config)
+      box2.set_width(@types.Value::point(30.0))
+      box2.set_height(@types.Value::point(10.0))
+      
+      let box3 = @wrapper.Node::new_with_config(app.yoga_config)
+      box3.set_flex_grow(1.0)
+      box3.set_height(@types.Value::point(10.0))
+      
+      // Add children
+      container.add_child(box1)
+      container.add_child(box2)
+      container.add_child(box3)
+      
+      // Calculate layout
+      container.calculate_layout(
+        app.width.to_double().to_float(),
+        app.height.to_double().to_float(),
+        @types.Direction::LTR
+      )
+      
+      // Render based on calculated layout
+      app.run_once(fn(app) {
+        // Clear screen
+        app.clear(0.05, 0.05, 0.1)
+        
+        // Draw title
+        app.draw_text("Yoga Layout Demo - Automatic Flexbox Positioning", 2, 1, @core.Color::BrightCyan)
+        
+        // Get computed layouts
+        let container_layout = container.get_layout()
+        let box1_layout = box1.get_layout()
+        let box2_layout = box2.get_layout()
+        let box3_layout = box3.get_layout()
+        
+        // Draw container
+        app.draw_rect(
+          container_layout.left.to_double().to_int(),
+          container_layout.top.to_double().to_int(),
+          container_layout.width.to_double().to_int(),
+          container_layout.height.to_double().to_int(),
+          @core.Color::Blue
+        )
+        
+        // Draw box 1 (flex-grow: 1)
+        let x1 = (container_layout.left + box1_layout.left).to_double().to_int()
+        let y1 = (container_layout.top + box1_layout.top).to_double().to_int()
+        app.draw_rect(
+          x1, y1,
+          box1_layout.width.to_double().to_int(),
+          box1_layout.height.to_double().to_int(),
+          @core.Color::Red
+        )
+        app.draw_text("Flex: 1", x1 + 2, y1 + 1, @core.Color::White)
+        
+        // Draw box 2 (fixed width: 30)
+        let x2 = (container_layout.left + box2_layout.left).to_double().to_int()
+        let y2 = (container_layout.top + box2_layout.top).to_double().to_int()
+        app.draw_rect(
+          x2, y2,
+          box2_layout.width.to_double().to_int(),
+          box2_layout.height.to_double().to_int(),
+          @core.Color::Green
+        )
+        app.draw_text("Fixed: 30", x2 + 2, y2 + 1, @core.Color::White)
+        
+        // Draw box 3 (flex-grow: 1)
+        let x3 = (container_layout.left + box3_layout.left).to_double().to_int()
+        let y3 = (container_layout.top + box3_layout.top).to_double().to_int()
+        app.draw_rect(
+          x3, y3,
+          box3_layout.width.to_double().to_int(),
+          box3_layout.height.to_double().to_int(),
+          @core.Color::Magenta
+        )
+        app.draw_text("Flex: 1", x3 + 2, y3 + 1, @core.Color::White)
+        
+        // Draw info
+        app.draw_text("Container: FlexDirection::Row, Padding: 2, Gap: 2", 2, 23, @core.Color::Gray)
+        app.draw_text("Box1: flex-grow: 1", 2, 24, @core.Color::Gray)
+        app.draw_text("Box2: width: 30 (fixed)", 2, 25, @core.Color::Gray)
+        app.draw_text("Box3: flex-grow: 1", 2, 26, @core.Color::Gray)
+        app.draw_text("Notice how Yoga automatically calculates the layout!", 2, 28, @core.Color::BrightYellow)
+      })
+      
+      // Sleep so user can see
+      @ffi.sleep_ms(5000)
+      
+      // Cleanup
+      app.cleanup()
+      println("Yoga demo complete!")
+    }
+  }
+}

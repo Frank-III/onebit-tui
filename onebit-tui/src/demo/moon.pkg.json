@@ -1,6 +1,11 @@
 {
   "is-main": true,
-  "import": ["moonbit-community/onebit-tui/ffi", "moonbit-community/onebit-tui/core", "moonbitlang/x/fs"],
+  "import": [
+    "moonbit-community/onebit-tui/ffi",
+    "moonbit-community/onebit-tui/core",
+    "moonbit-community/onebit-tui/components",
+    "moonbitlang/x/fs"
+  ],
   "link": {
     "native": {
       "cc": "/usr/bin/clang",

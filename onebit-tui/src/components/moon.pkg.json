@@ -1,0 +1,4 @@
+{
+  "import": ["moonbit-community/onebit-tui/core", "moonbit-community/onebit-tui/ffi"],
+  "warn-list": "-15"
+}

@@ -1,0 +1,122 @@
+///| Trait Object Demo - Prove that &Trait works in MoonBit
+
+// Simple trait for drawable elements
+pub trait Drawable {
+  draw(Self, @ffi.Buffer, Int, Int) -> Unit
+  get_size(Self) -> (Int, Int)
+}
+
+// Simple box implementation
+struct SimpleBox {
+  width : Int
+  height : Int
+  title : String
+}
+
+impl Drawable for SimpleBox with
+  draw(self, buffer, x, y) {
+    // Draw a simple ASCII box
+    let x_u = x.reinterpret_as_uint()
+    let y_u = y.reinterpret_as_uint()
+    
+    // Top line with title
+    buffer.draw_text(
+      "+" + self.title + "+",
+      x_u, y_u,
+      fg_r=1.0, fg_g=1.0, fg_b=1.0
+    )
+    
+    // Bottom line
+    buffer.draw_text(
+      "+" + "-".repeat(self.width - 2) + "+",
+      x_u, (y + self.height - 1).reinterpret_as_uint(),
+      fg_r=1.0, fg_g=1.0, fg_b=1.0
+    )
+  }
+  
+  get_size(self) {
+    (self.width, self.height)
+  }
+
+// Simple text implementation
+struct SimpleText {
+  content : String
+}
+
+impl Drawable for SimpleText with
+  draw(self, buffer, x, y) {
+    buffer.draw_text(
+      self.content,
+      x.reinterpret_as_uint(),
+      y.reinterpret_as_uint(),
+      fg_r=0.0, fg_g=1.0, fg_b=1.0
+    )
+  }
+  
+  get_size(self) {
+    (self.content.length(), 1)
+  }
+
+// Container that holds trait objects
+struct Container {
+  items : Array[&Drawable]
+}
+
+fn Container::new() -> Container {
+  Container::{ items: [] }
+}
+
+fn Container::add(self : Container, item : &Drawable) -> Container {
+  self.items.push(item)
+  self
+}
+
+fn Container::render(self : Container, buffer : @ffi.Buffer) -> Unit {
+  let mut y = 2
+  for i = 0; i < self.items.length(); i = i + 1 {
+    let item = self.items[i]
+    item.draw(buffer, 2, y)
+    let (_, height) = item.get_size()
+    y = y + height + 1
+  }
+}
+
+pub fn run_trait_object_demo() -> Unit {
+  println("Starting Trait Object Demo...")
+  
+  let (width, height) = @ffi.get_terminal_size()
+  match @ffi.Renderer::new(width, height) {
+    None => {
+      println("Failed to create renderer")
+      return
+    }
+    Some(renderer) => {
+      let buffer = renderer.get_next_buffer()
+      buffer.clear(0.05, 0.05, 0.1, 1.0)
+      
+      // Create a container with trait objects
+      let container = Container::new()
+        |> _.add(SimpleBox::{ width: 20, height: 3, title: "Box1" } as &Drawable)
+        |> _.add(SimpleText::{ content: "Hello Trait Objects!" } as &Drawable)
+        |> _.add(SimpleBox::{ width: 15, height: 3, title: "Box2" } as &Drawable)
+      
+      // Render using trait objects
+      container.render(buffer)
+      
+      renderer.render(force=true)
+      @ffi.sleep_ms(3000)
+      renderer.destroy()
+      
+      println("Trait object demo complete!")
+    }
+  }
+}
+
+// Helper to repeat a string
+fn String::repeat(self : String, n : Int) -> String {
+  let mut result = ""
+  for i = 0; i < n; i = i + 1 {
+    result = result + self
+  }
+  result
+}
