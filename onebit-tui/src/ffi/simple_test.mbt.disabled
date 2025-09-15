@@ -1,9 +1,0 @@
-///| Simplest possible FFI test
-
-// Just test if we can call an extern function
-extern "C" fn setCursorPosition(x: Int, y: Int, visible: Bool) = "setCursorPosition"
-
-pub fn test_cursor() -> Unit {
-  setCursorPosition(10, 5, true)
-  println("If no crash, FFI is working!")
-}

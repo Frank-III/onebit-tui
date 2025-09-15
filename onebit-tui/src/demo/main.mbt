@@ -1,20 +1,19 @@
-///| Main entry point - runs demos
-///| Provides a menu to select different demos
+///| Main entry point for OneBit-TUI demos
 
 fn main {
-  // Check command line arguments or show menu
-  println("=== OneBit-TUI Demo Selector ===")
-  println("1. Interact View Demo (Yoga + events)")
-  println("2. Yoga Layout Demo (Box/VStack/HStack)")
-  println("3. Event Loop Demo (Buttons)")
-  println("4. Mouse & Resize Demo")
-  println("5. Dashboard Demo")
-  println("6. File Explorer Demo (Mock)")
-  println("7. Real File Explorer (with fs)")
-  println("8. Select Component Demo")
-  println("")
-  println("Running Select Component Demo...")
+  println("=== OneBit-TUI Demos ===")
+  println("1. Real FFI Demo")
+  println("2. Showcase Demo")
+  println("3. Terminal App Demo")
+  println("4. New API Demo")
+  println()
+  println("Running New API Demo...")
   
-  // For now, run Select demo to test the new component
-  run_select_demo()
+  // Run the new API demo
+  new_api_demo()
+}
+
+// Simple wrapper to call the new API demo
+fn new_api_demo() -> Unit {
+  @new_api_demo.main()
 }
