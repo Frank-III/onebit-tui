@@ -7,8 +7,8 @@ fn main {
   println("3. Terminal App Demo")
   println("4. New API Demo")
   println("")
-  println("Running New API Demo...")
+  println("Running Render Test...")
   
-  // Run the new API demo
-  run_new_api_demo()
+  // Run the render test first to check FFI
+  run_render_test()
 }

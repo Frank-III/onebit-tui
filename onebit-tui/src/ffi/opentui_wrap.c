@@ -14,14 +14,15 @@
 typedef void* RendererPtr;
 typedef void* BufferPtr;
 
-// External Zig functions from libopentui.* (older symbol set)
-extern RendererPtr createRenderer(uint32_t width, uint32_t height);
+// External Zig functions from libopentui.* (newer signature with testing parameter)
+extern RendererPtr createRenderer(uint32_t width, uint32_t height, bool testing);
 
 // Debug wrapper for createRenderer
 #include <stdio.h>
 RendererPtr createRendererDebug(uint32_t width, uint32_t height) {
     fprintf(stderr, "DEBUG: createRendererDebug called with width=%u, height=%u\n", width, height);
-    RendererPtr result = createRenderer(width, height);
+    // Pass false for testing parameter since we're running for real
+    RendererPtr result = createRenderer(width, height, false);
     fprintf(stderr, "DEBUG: createRenderer returned %p\n", result);
     return result;
 }
@@ -32,7 +33,14 @@ extern void render(RendererPtr renderer, bool force);
 extern BufferPtr getNextBuffer(RendererPtr renderer);
 extern BufferPtr getCurrentBuffer(RendererPtr renderer);
 
-extern BufferPtr createOptimizedBuffer(uint32_t width, uint32_t height, bool respectAlpha);
+// The newer Zig API for createOptimizedBuffer takes more parameters
+extern BufferPtr createOptimizedBuffer(uint32_t width, uint32_t height, bool respectAlpha, uint8_t widthMethod, const uint8_t* idPtr, size_t idLen);
+
+// Wrapper for older API that MoonBit expects
+BufferPtr createOptimizedBufferSimple(uint32_t width, uint32_t height, bool respectAlpha) {
+    const char* empty_id = "";
+    return createOptimizedBuffer(width, height, respectAlpha, 0, (const uint8_t*)empty_id, 0);
+}
 extern void destroyOptimizedBuffer(BufferPtr buffer);
 extern uint32_t getBufferWidth(BufferPtr buffer);
 extern uint32_t getBufferHeight(BufferPtr buffer);
@@ -193,9 +201,9 @@ void updateMemoryStatsR(RendererPtr renderer, uint32_t heapUsed, uint32_t heapTo
 
 // Enhanced buffer creation with width method (fallback to older)
 BufferPtr createOptimizedBuffer2(uint32_t width, uint32_t height, bool respectAlpha, uint8_t widthMethod) {
-    fn_createOptimizedBuffer2 f = (fn_createOptimizedBuffer2)sym("createOptimizedBuffer");
-    if (f) return f(width, height, respectAlpha, widthMethod);
-    return createOptimizedBuffer(width, height, respectAlpha);
+    // The new Zig API needs an id string - just pass empty string for now
+    const char* empty_id = "";
+    return createOptimizedBuffer(width, height, respectAlpha, widthMethod, (const uint8_t*)empty_id, 0);
 }
 
 void bufferSetCellWithAlphaBlendingMB(BufferPtr buffer, uint32_t x, uint32_t y, uint32_t char_code, const double* fg, const double* bg, uint8_t attributes) {

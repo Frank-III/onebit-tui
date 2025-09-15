@@ -18,7 +18,7 @@ extern "C" fn getNextBuffer(renderer : RendererPtr) -> BufferPtr = "getNextBuffe
 extern "C" fn getCurrentBuffer(renderer : RendererPtr) -> BufferPtr = "getCurrentBuffer"
 
 // Buffer management functions
-extern "C" fn createOptimizedBuffer(width : UInt, height : UInt, respect_alpha : Bool) -> BufferPtr? = "createOptimizedBuffer"
+extern "C" fn createOptimizedBuffer(width : UInt, height : UInt, respect_alpha : Bool) -> BufferPtr? = "createOptimizedBufferSimple"
 extern "C" fn destroyOptimizedBuffer(buffer : BufferPtr) -> Unit = "destroyOptimizedBuffer"
 extern "C" fn getBufferWidth(buffer : BufferPtr) -> UInt = "getBufferWidth"
 extern "C" fn getBufferHeight(buffer : BufferPtr) -> UInt = "getBufferHeight"

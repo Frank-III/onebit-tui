@@ -1,20 +1,10 @@
 ///| Demo of the new declarative API with Yoga layout
 
 pub fn run_new_api_demo() -> Unit {
-  // Initialize the TUI app
-  match @core.TUI::init() {
-    None => {
-      println("Failed to initialize TUI")
-      return
-    }
-    Some(app) => {
-      println("TUI initialized successfully!")
-      
-      // For now, just run the real FFI demo since our new API isn't fully working yet
-      println("Running simple FFI demo instead...")
-      run_simple_ffi_demo()
-    }
-  }
+  println("Testing FFI layer...")
+  
+  // For now, always run the simple FFI demo to test if FFI works
+  run_simple_ffi_demo()
 }
 
 // Simple FFI demo that we know works
