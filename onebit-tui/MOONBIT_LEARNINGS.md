@@ -426,9 +426,24 @@ pub fn Rect::new(x : Int, y : Int, width : Int, height : Int) -> Rect {
   { x, y, width, height }  // Just braces, no Rect:: prefix
 }
 
+// ✅ Using match expressions for optional fields in struct construction
+struct Migrator {
+  repo : String
+  max_while_loop : Int
+}
+
+let migrator = Migrator::{
+  repo: "my-repo",
+  max_while_loop: match arguments.max_while_loop {
+    None => 1
+    Some(max_while_loop) => max_while_loop
+  }
+}
+
 // IMPORTANT PATTERN:
 // When you see "Type::{" in code, ALWAYS remove the "Type::" part
 // MoonBit struct literals NEVER use the Type:: prefix
+// EXCEPTION: Type::{} syntax IS valid for struct construction with labeled fields
 ```
 
 ## Pattern Matching
@@ -697,6 +712,56 @@ moon check
 
 # Format code
 moon fmt
+```
+
+## Cross-Package Visibility for Enums and Structs
+
+### Problem: Read-only Types Across Packages
+
+When a struct or enum is marked as `pub`, it's visible but read-only in other packages. You can't create instances.
+
+**Error Examples:**
+
+```moonbit
+// In components package
+pub struct ModalConfig { ... }
+pub enum BorderStyle { Single; Double }
+
+// In demo package - ERRORS!
+let config = @components.ModalConfig::{ ... }  // Error [4036]: Cannot create values of read-only type
+let style = @components.BorderStyle::Single    // Error [4036]: Cannot create values of read-only type
+```
+
+**Solution: Use pub(all)**
+
+```moonbit
+// In components package
+pub(all) struct ModalConfig { ... }  // Now can be instantiated anywhere
+pub(all) enum BorderStyle { Single; Double }  // Variants can be used anywhere
+```
+
+## Optional Parameters in MoonBit
+
+### Struct Fields
+
+```moonbit
+// Correct: Option types for optional fields
+pub struct Config {
+  title : String
+  width : Int?      // Optional field
+  on_close : (() -> Unit)?  // Optional callback
+}
+```
+
+### Function Parameters
+
+```moonbit
+// For optional parameters, use Option type
+pub fn modal(config : Config, on_cancel : (() -> Unit)?) -> View
+
+// Call with Some or None
+modal(config, Some(fn() { ... }))
+modal(config, None)
 ```
 
 ## Resources
