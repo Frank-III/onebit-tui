@@ -75,10 +75,19 @@ fn main {
                 .padding(1.0)
                 .children([
                   @components.View::text("Main Content", Some(@core.Color::White)),
-                  @components.View::text("Use Up/Down to change selection. Click items.", Some(@core.Color::BrightGreen))
-                    .measure_text(true, max_width=40),
+                  // Simple stats table
+                  @components.simple_table(
+                    ["Component", "Status", "Count"],
+                    [
+                      ["Checkboxes", "✓", "2"],
+                      ["Radio Groups", "✓", "1"], 
+                      ["Tables", "✓", "1"],
+                      ["Modals", "✓", "0"]
+                    ]
+                  ),
+                  @components.View::text("List Selection:", Some(@core.Color::BrightGreen)),
                   // Container with clipping flag enabled (no-op until upstream scissor available)
-                  @components.View::new().clip_children(true).height(@types.Value::point(8.0)).children([ list_view ]),
+                  @components.View::new().clip_children(true).height(@types.Value::point(6.0)).children([ list_view ]),
                   // Editable input
                   @components.input_edit(name, caret=caret, placeholder="Type here...")
                 ])
