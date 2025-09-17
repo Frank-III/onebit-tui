@@ -1,6 +1,6 @@
 ///| Interactive test demo to verify input handling and state changes
 
-fn main {
+fn interactive_test_main() -> Unit {
   println("=== OneBit-TUI Interactive Test Demo ===")
   println("This demo tests keyboard, mouse, focus, and state management")
   
