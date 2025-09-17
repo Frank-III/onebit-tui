@@ -1,6 +1,6 @@
 ///| Minimal View + Yoga demo using App::render_view
 
-fn main {
+fn quick_demo_main() -> Unit {
   println("=== OneBit-TUI View Demo ===")
   match @core.App::init() {
     None => println("Failed to initialize renderer")
