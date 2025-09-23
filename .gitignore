@@ -43,6 +43,8 @@ target/
 **/target/
 *.mi
 *.core
+.mooncakes/
+**/.mooncakes/
 
 # OneBit-TUI local build artifacts
 /onebit-tui/build/
@@ -50,10 +52,20 @@ target/
 /onebit-tui/lib/*.a
 /onebit-tui/lib/*.dylib
 
+# OneBit-TUI ffi generated artifacts
+/onebit-tui/src/ffi/lib/
+/onebit-tui/src/ffi/lib/*.sig
+/onebit-tui/src/ffi/vendor/opentui/.zig-cache/
+/onebit-tui/src/ffi/vendor/opentui/lib/
+
 # OneBit-Yoga local build artifacts
 /onebit-yoga/src/ffi/target/
 /onebit-yoga/src/ffi/*.o
 /onebit-yoga/src/ffi/libyoga_wrap.a
+/onebit-yoga/src/ffi/yoga-install/
+/onebit-yoga/src/ffi/vendor/yoga/build/
+/onebit-yoga/src/ffi/vendor/yoga
 
 # Local tools/cache
 /.claude/
+.zig-cache/

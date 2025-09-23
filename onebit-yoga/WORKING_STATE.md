@@ -30,7 +30,7 @@ onebit-yoga/
 ├── src/
 │   ├── types/        # Enums and value types
 │   ├── ffi/          # FFI layer (mock and native)
-│   ├── wrapper/      # High-level API (Node, NodeBuilder)
+│   ├── yoga/         # High-level API (Node, NodeBuilder)
 │   └── examples/     # Example programs
 ├── justfile          # Build commands
 └── moon.mod.json     # MoonBit module config
@@ -40,13 +40,13 @@ onebit-yoga/
 
 ```moonbit
 // Create a flexbox layout
-let root = @wrapper.Node::new()
+let root = @yoga.Node::new()
 root.set_flex_direction(@types.FlexDirection::Row)
 root.set_width_points(300.0)
 root.set_height_points(100.0)
 
 // Add children
-let child = @wrapper.Node::new()
+let child = @yoga.Node::new()
 child.set_flex(1.0)
 root.add_child(child)
 

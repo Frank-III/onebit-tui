@@ -1,6 +1,7 @@
 ///| Native FFI bindings for Yoga Layout Engine
 
-///| This file contains extern function declarations for the C API
+///|
+/// This file contains extern function declarations for the C API
 
 // Only compile this for native targets
 // @target(native)
@@ -226,6 +227,9 @@ extern "C" fn yg_node_style_SetBorder(
   border : Float,
 ) = "YGNodeStyleSetBorder_wrap"
 
+///|
+extern "C" fn yg_node_style_SetGap(node : YGNodeRef, gutter : Int, gap : Float) = "YGNodeStyleSetGap_wrap"
+
 // Tree management
 
 ///|
@@ -243,6 +247,16 @@ extern "C" fn yg_node_get_child_count(parent : YGNodeRef) -> Int = "YGNodeGetChi
 
 ///|
 extern "C" fn yg_node_get_child(parent : YGNodeRef, index : Int) -> YGNodeRef = "YGNodeGetChild_wrap"
+
+///|
+extern "C" fn yg_node_set_measure_fixed(
+  node : YGNodeRef,
+  width : Float,
+  height : Float,
+) = "YGNodeSetMeasureFuncFixed_wrap"
+
+///|
+extern "C" fn yg_node_clear_measure(node : YGNodeRef) = "YGNodeClearMeasureFunc_wrap"
 
 // Now create wrapper functions that convert our types to Yoga's integer constants
 
@@ -358,6 +372,17 @@ fn align_to_yoga(align : @types.Align) -> Int {
   }
 }
 
+// Convert Gutter enum to Yoga constants
+
+///|
+fn gutter_to_yoga(gutter : @types.Gutter) -> Int {
+  match gutter {
+    @types.Gutter::Column => 0
+    @types.Gutter::Row => 1
+    @types.Gutter::All => 2
+  }
+}
+
 // Convert PositionType enum to Yoga constants
 
 ///|
@@ -437,242 +462,328 @@ pub fn yoga_node_set_flex_direction_native(
 ) -> Unit {
   match node {
     YogaNodeRef(ref) =>
-      yg_node_style_SetFlexDirection(YGNodeRef(ref), flex_direction_to_yoga(direction))
+      yg_node_style_SetFlexDirection(
+        YGNodeRef(ref),
+        flex_direction_to_yoga(direction),
+      )
   }
 }
 
-  pub fn yoga_node_set_justify_content_native(
-    node : YogaNodeRef,
-    justify : @types.Justify,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetJustifyContent(YGNodeRef(ref), justify_to_yoga(justify))
-    }
+///|
+pub fn yoga_node_set_justify_content_native(
+  node : YogaNodeRef,
+  justify : @types.Justify,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetJustifyContent(YGNodeRef(ref), justify_to_yoga(justify))
   }
+}
 
-  pub fn yoga_node_set_align_items_native(
-    node : YogaNodeRef,
-    align : @types.Align,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetAlignItems(YGNodeRef(ref), align_to_yoga(align))
-    }
+///|
+pub fn yoga_node_set_align_items_native(
+  node : YogaNodeRef,
+  align : @types.Align,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetAlignItems(YGNodeRef(ref), align_to_yoga(align))
   }
+}
 
-  pub fn yoga_node_set_align_self_native(
-    node : YogaNodeRef,
-    align : @types.Align,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetAlignSelf(YGNodeRef(ref), align_to_yoga(align))
-    }
+///|
+pub fn yoga_node_set_align_self_native(
+  node : YogaNodeRef,
+  align : @types.Align,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetAlignSelf(YGNodeRef(ref), align_to_yoga(align))
   }
+}
 
-  pub fn yoga_node_set_align_content_native(
-    node : YogaNodeRef,
-    align : @types.Align,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetAlignContent(YGNodeRef(ref), align_to_yoga(align))
-    }
+///|
+pub fn yoga_node_set_align_content_native(
+  node : YogaNodeRef,
+  align : @types.Align,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetAlignContent(YGNodeRef(ref), align_to_yoga(align))
   }
+}
 
-  pub fn yoga_node_set_flex_wrap_native(
-    node : YogaNodeRef,
-    wrap : @types.Wrap,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetFlexWrap(YGNodeRef(ref), wrap_to_yoga(wrap))
-    }
+///|
+pub fn yoga_node_set_flex_wrap_native(
+  node : YogaNodeRef,
+  wrap : @types.Wrap,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetFlexWrap(YGNodeRef(ref), wrap_to_yoga(wrap))
   }
+}
 
-  pub fn yoga_node_set_position_type_native(
-    node : YogaNodeRef,
-    position : @types.PositionType,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetPositionType(YGNodeRef(ref), position_type_to_yoga(position))
-    }
+///|
+pub fn yoga_node_set_position_type_native(
+  node : YogaNodeRef,
+  position : @types.PositionType,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetPositionType(
+        YGNodeRef(ref),
+        position_type_to_yoga(position),
+      )
   }
+}
 
-  pub fn yoga_node_set_width_native(node : YogaNodeRef, width : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetWidth(YGNodeRef(ref), width)
-    }
+///|
+pub fn yoga_node_set_width_native(node : YogaNodeRef, width : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetWidth(YGNodeRef(ref), width)
   }
+}
 
-  pub fn yoga_node_set_height_native(node : YogaNodeRef, height : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetHeight(YGNodeRef(ref), height)
-    }
+///|
+pub fn yoga_node_set_height_native(node : YogaNodeRef, height : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetHeight(YGNodeRef(ref), height)
   }
+}
 
-  pub fn yoga_node_set_width_percent_native(node : YogaNodeRef, width : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetWidthPercent(YGNodeRef(ref), width)
-    }
+///|
+pub fn yoga_node_set_width_percent_native(
+  node : YogaNodeRef,
+  width : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetWidthPercent(YGNodeRef(ref), width)
   }
+}
 
-  pub fn yoga_node_set_height_percent_native(node : YogaNodeRef, height : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetHeightPercent(YGNodeRef(ref), height)
-    }
+///|
+pub fn yoga_node_set_height_percent_native(
+  node : YogaNodeRef,
+  height : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetHeightPercent(YGNodeRef(ref), height)
   }
+}
 
-  pub fn yoga_node_set_width_auto_native(node : YogaNodeRef) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetWidthAuto(YGNodeRef(ref))
-    }
+///|
+pub fn yoga_node_set_width_auto_native(node : YogaNodeRef) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetWidthAuto(YGNodeRef(ref))
   }
+}
 
-  pub fn yoga_node_set_height_auto_native(node : YogaNodeRef) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetHeightAuto(YGNodeRef(ref))
-    }
+///|
+pub fn yoga_node_set_height_auto_native(node : YogaNodeRef) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetHeightAuto(YGNodeRef(ref))
   }
+}
 
-  pub fn yoga_node_set_flex_native(node : YogaNodeRef, flex : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetFlex(YGNodeRef(ref), flex)
-    }
+///|
+pub fn yoga_node_set_flex_native(node : YogaNodeRef, flex : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetFlex(YGNodeRef(ref), flex)
   }
+}
 
-  pub fn yoga_node_set_flex_grow_native(node : YogaNodeRef, grow : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetFlexGrow(YGNodeRef(ref), grow)
-    }
+///|
+pub fn yoga_node_set_flex_grow_native(node : YogaNodeRef, grow : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetFlexGrow(YGNodeRef(ref), grow)
   }
+}
 
-  pub fn yoga_node_set_flex_shrink_native(node : YogaNodeRef, shrink : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetFlexShrink(YGNodeRef(ref), shrink)
-    }
+///|
+pub fn yoga_node_set_flex_shrink_native(
+  node : YogaNodeRef,
+  shrink : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetFlexShrink(YGNodeRef(ref), shrink)
   }
+}
 
-  pub fn yoga_node_set_flex_basis_native(node : YogaNodeRef, basis : Float) -> Unit {
-    match node {
-      YogaNodeRef(ref) => yg_node_style_SetFlexBasis(YGNodeRef(ref), basis)
-    }
+///|
+pub fn yoga_node_set_flex_basis_native(
+  node : YogaNodeRef,
+  basis : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetFlexBasis(YGNodeRef(ref), basis)
   }
+}
 
-  pub fn yoga_node_set_margin_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    margin : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetMargin(YGNodeRef(ref), edge_to_yoga(edge), margin)
-    }
+///|
+pub fn yoga_node_set_margin_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  margin : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetMargin(YGNodeRef(ref), edge_to_yoga(edge), margin)
   }
+}
 
-  pub fn yoga_node_set_margin_percent_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    margin : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetMarginPercent(YGNodeRef(ref), edge_to_yoga(edge), margin)
-    }
+///|
+pub fn yoga_node_set_margin_percent_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  margin : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetMarginPercent(YGNodeRef(ref), edge_to_yoga(edge), margin)
   }
+}
 
-  pub fn yoga_node_set_margin_auto_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetMarginAuto(YGNodeRef(ref), edge_to_yoga(edge))
-    }
+///|
+pub fn yoga_node_set_margin_auto_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetMarginAuto(YGNodeRef(ref), edge_to_yoga(edge))
   }
+}
 
-  pub fn yoga_node_set_padding_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    padding : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetPadding(YGNodeRef(ref), edge_to_yoga(edge), padding)
-    }
+///|
+pub fn yoga_node_set_padding_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  padding : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetPadding(YGNodeRef(ref), edge_to_yoga(edge), padding)
   }
+}
 
-  pub fn yoga_node_set_padding_percent_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    padding : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetPaddingPercent(YGNodeRef(ref), edge_to_yoga(edge), padding)
-    }
+///|
+pub fn yoga_node_set_padding_percent_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  padding : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetPaddingPercent(
+        YGNodeRef(ref),
+        edge_to_yoga(edge),
+        padding,
+      )
   }
+}
 
-  pub fn yoga_node_set_position_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    position : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetPosition(YGNodeRef(ref), edge_to_yoga(edge), position)
-    }
+///|
+pub fn yoga_node_set_gap_native(
+  node : YogaNodeRef,
+  gutter : @types.Gutter,
+  gap : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetGap(YGNodeRef(ref), gutter_to_yoga(gutter), gap)
   }
+}
 
-  pub fn yoga_node_set_position_percent_native(
-    node : YogaNodeRef,
-    edge : @types.Edge,
-    position : Float,
-  ) -> Unit {
-    match node {
-      YogaNodeRef(ref) =>
-        yg_node_style_SetPositionPercent(YGNodeRef(ref), edge_to_yoga(edge), position)
-    }
+///|
+pub fn yoga_node_set_position_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  position : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetPosition(YGNodeRef(ref), edge_to_yoga(edge), position)
   }
+}
 
-  pub fn yoga_node_insert_child_native(
-    parent : YogaNodeRef,
-    child : YogaNodeRef,
-    index : Int,
-  ) -> Unit {
-    match (parent, child) {
-      (YogaNodeRef(p), YogaNodeRef(c)) =>
-        yg_node_insert_child(YGNodeRef(p), YGNodeRef(c), index)
-    }
+///|
+pub fn yoga_node_set_position_percent_native(
+  node : YogaNodeRef,
+  edge : @types.Edge,
+  position : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) =>
+      yg_node_style_SetPositionPercent(
+        YGNodeRef(ref),
+        edge_to_yoga(edge),
+        position,
+      )
   }
+}
 
-  pub fn yoga_node_remove_child_native(
-    parent : YogaNodeRef,
-    child : YogaNodeRef,
-  ) -> Unit {
-    match (parent, child) {
-      (YogaNodeRef(p), YogaNodeRef(c)) =>
-        yg_node_remove_child(YGNodeRef(p), YGNodeRef(c))
-    }
+///|
+pub fn yoga_node_insert_child_native(
+  parent : YogaNodeRef,
+  child : YogaNodeRef,
+  index : Int,
+) -> Unit {
+  match (parent, child) {
+    (YogaNodeRef(p), YogaNodeRef(c)) =>
+      yg_node_insert_child(YGNodeRef(p), YGNodeRef(c), index)
   }
+}
 
-  pub fn yoga_node_get_child_count_native(parent : YogaNodeRef) -> Int {
-    match parent {
-      YogaNodeRef(ref) => yg_node_get_child_count(YGNodeRef(ref))
-    }
+///|
+pub fn yoga_node_remove_child_native(
+  parent : YogaNodeRef,
+  child : YogaNodeRef,
+) -> Unit {
+  match (parent, child) {
+    (YogaNodeRef(p), YogaNodeRef(c)) =>
+      yg_node_remove_child(YGNodeRef(p), YGNodeRef(c))
   }
+}
 
-  pub fn yoga_node_get_child_native(parent : YogaNodeRef, index : Int) -> YogaNodeRef? {
-    match parent {
-      YogaNodeRef(ref) => {
-        let YGNodeRef(child) = yg_node_get_child(YGNodeRef(ref), index)
-        if child == 0 {
-          None
-        } else {
-          Some(YogaNodeRef(child))
-        }
+///|
+pub fn yoga_node_get_child_count_native(parent : YogaNodeRef) -> Int {
+  match parent {
+    YogaNodeRef(ref) => yg_node_get_child_count(YGNodeRef(ref))
+  }
+}
+
+///|
+pub fn yoga_node_get_child_native(
+  parent : YogaNodeRef,
+  index : Int,
+) -> YogaNodeRef? {
+  match parent {
+    YogaNodeRef(ref) => {
+      let YGNodeRef(child) = yg_node_get_child(YGNodeRef(ref), index)
+      if child == 0 {
+        None
+      } else {
+        Some(YogaNodeRef(child))
       }
     }
   }
+}
+
+///|
+pub fn yoga_node_set_measure_fixed_native(
+  node : YogaNodeRef,
+  width : Float,
+  height : Float,
+) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_set_measure_fixed(YGNodeRef(ref), width, height)
+  }
+}
+
+///|
+pub fn yoga_node_clear_measure_native(node : YogaNodeRef) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_clear_measure(YGNodeRef(ref))
+  }
+}

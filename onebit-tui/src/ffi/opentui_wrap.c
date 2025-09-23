@@ -113,6 +113,30 @@ void bufferDrawTextMB(BufferPtr buffer, const uint8_t* text, size_t textLen, uin
     for (int i = 0; i < 4; i++) {
         fbg[i] = (float)bg[i];
     }
+    
+    // Enhanced debug output
+    static int call_count = 0;
+    if (call_count < 20) {
+        FILE* f = fopen("/tmp/moonbit_text_debug.txt", "a");
+        if (f) {
+            fprintf(f, "Call %d: pos=(%u,%u) len=%zu text='", call_count, x, y, textLen);
+            for (size_t i = 0; i < textLen; i++) {
+                if (text[i] >= 32 && text[i] < 127) {
+                    fprintf(f, "%c", text[i]);
+                } else {
+                    fprintf(f, "[%02x]", text[i]);
+                }
+            }
+            fprintf(f, "' bytes=");
+            for (size_t i = 0; i < textLen && i < 10; i++) {
+                fprintf(f, "%02x ", text[i]);
+            }
+            fprintf(f, "\n");
+            fclose(f);
+        }
+    }
+    call_count++;
+    
     bufferDrawText(buffer, text, textLen, x, y, ffg, fbg, attributes);
 }
 

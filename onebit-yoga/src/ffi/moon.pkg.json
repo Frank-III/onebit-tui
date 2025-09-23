@@ -1,10 +1,17 @@
 {
-  "import": ["moonbit-community/onebit-yoga/types"],
+  "import": ["Frank-III/onebit-yoga/types"],
   "warn-list": "-1-3-4-6-9-19-35",
-  "link": {
-    "native": {
-      "cc": "clang",
-      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lyoga-install/lib -lyogacore -lc++"
+  "pre-build": [
+    {
+      "input": [
+        "scripts/build_yoga.sh"
+      ],
+      "output": [
+        "yoga-install/lib/libyogacore.a"
+      ],
+      "command": "bash src/ffi/scripts/build_yoga.sh"
     }
-  }
+  ],
+  "native-stub": [],
+  "link": false
 }

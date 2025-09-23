@@ -8,9 +8,6 @@ pub struct App {
   mut width : Int
   mut height : Int
   mut running : Bool
-  // Yoga layout
-  yoga_config : @wrapper.Config
-  root_node : @wrapper.Node
 }
 
 ///|
@@ -19,24 +16,14 @@ pub fn App::init() -> App? {
   let (width, height) = @ffi.get_terminal_size()
   match @ffi.Renderer::new(width, height) {
     None => None
-    Some(renderer) => {
-      // Initialize Yoga
-      let config = @wrapper.Config::default()
-      let root = @wrapper.Node::new_with_config(config)
-
-      // Setup root node for full screen
-      root.set_width(@types.Value::point(width.to_double().to_float()))
-      root.set_height(@types.Value::point(height.to_double().to_float()))
+    Some(renderer) =>
       Some(App::{
         renderer,
         buffer: renderer.get_next_buffer(),
         width: width.reinterpret_as_int(),
         height: height.reinterpret_as_int(),
         running: true,
-        yoga_config: config,
-        root_node: root,
       })
-    }
   }
 }
 
@@ -92,8 +79,35 @@ pub fn App::draw_rect(
 ///|
 /// Render the current frame
 pub fn App::render(self : App) -> Unit {
-  self.renderer.render(force=true)
+  // Use diffed rendering to minimize terminal writes
+  self.renderer.render(force=false)
   self.buffer = self.renderer.get_next_buffer()
+}
+
+///|
+/// Resize renderer and update cached dimensions used for layout
+pub fn App::resize(self : App, width : UInt, height : UInt) -> Unit {
+  self.renderer.resize(width, height)
+  self.width = width.reinterpret_as_int()
+  self.height = height.reinterpret_as_int()
+}
+
+///|
+/// Expose current buffer for advanced rendering
+pub fn App::get_buffer(self : App) -> @ffi.Buffer {
+  self.buffer
+}
+
+///|
+/// Current terminal dimensions
+pub fn App::dimensions(self : App) -> (Int, Int) {
+  (self.width, self.height)
+}
+
+///|
+/// Expose renderer for advanced integration (hit-grid, etc.)
+pub fn App::get_renderer(self : App) -> @ffi.Renderer {
+  self.renderer
 }
 
 ///|

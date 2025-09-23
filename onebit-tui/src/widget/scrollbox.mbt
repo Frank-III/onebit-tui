@@ -1,0 +1,162 @@
+///|
+/// ScrollBox widget - renders a vertical window over a list of components
+pub struct ScrollBox {
+  items : Array[&@view.Component]
+  visible_rows : Int
+  offset : Ref[Int]
+  mut title : String?
+  mut border : @view.BorderStyle
+  mut padding : Double
+}
+
+///|
+pub fn ScrollBox::new(
+  items : Array[&@view.Component],
+  visible_rows? : Int = 10,
+  offset? : Ref[Int] = Ref::new(0),
+) -> ScrollBox {
+  {
+    items,
+    visible_rows,
+    offset,
+    title: None,
+    border: @view.BorderStyle::Single,
+    padding: 0.0,
+  }
+}
+
+///|
+pub fn ScrollBox::title(self : ScrollBox, text : String) -> ScrollBox {
+  self.title = Some(text)
+  self
+}
+
+///|
+pub fn ScrollBox::border(
+  self : ScrollBox,
+  style : @view.BorderStyle,
+) -> ScrollBox {
+  self.border = style
+  self
+}
+
+///|
+pub fn ScrollBox::padding(self : ScrollBox, p : Double) -> ScrollBox {
+  self.padding = p
+  self
+}
+
+///|
+pub impl @view.Component for ScrollBox with render(self) {
+  // Clamp offset
+  let total = self.items.length()
+  if total == 0 {
+    let t = match self.title {
+      Some(t) => t
+      None => ""
+    }
+    return @view.View::empty().border(self.border).title(t)
+  }
+  let max_offset = if total > self.visible_rows {
+    total - self.visible_rows
+  } else {
+    0
+  }
+  if self.offset.val < 0 {
+    self.offset.val = 0
+  }
+  if self.offset.val > max_offset {
+    self.offset.val = max_offset
+  }
+  let start = self.offset.val
+  let end = if start + self.visible_rows > total {
+    total
+  } else {
+    start + self.visible_rows
+  }
+  let views = []
+  for i = start; i < end; i = i + 1 {
+    views.push(self.items[i].render())
+  }
+  let mut container = @view.View::container_views(views)
+    .direction(@view.Direction::Column)
+    .padding(self.padding)
+    .border(self.border)
+    .height(self.visible_rows.to_double() + 2.0) // approx height incl. border
+    .focusable()
+    .on_key(fn(key) {
+      match key {
+        @ffi.KeyEvent::ArrowUp => {
+          if self.offset.val > 0 {
+            self.offset.val = self.offset.val - 1
+          }
+          true
+        }
+        @ffi.KeyEvent::ArrowDown => {
+          if self.offset.val < max_offset {
+            self.offset.val = self.offset.val + 1
+          }
+          true
+        }
+        @ffi.KeyEvent::PageUp => {
+          self.offset.val = if self.offset.val - self.visible_rows < 0 {
+            0
+          } else {
+            self.offset.val - self.visible_rows
+          }
+          true
+        }
+        @ffi.KeyEvent::PageDown => {
+          let mut next = self.offset.val + self.visible_rows
+          if next > max_offset {
+            next = max_offset
+          }
+          self.offset.val = next
+          true
+        }
+        _ => false
+      }
+    })
+  match self.title {
+    Some(t) => {
+      container = container.title(t)
+      ()
+    }
+    None => ()
+  }
+  container
+}
+
+///|
+pub impl @view.Component for ScrollBox with handle_event(self, event) {
+  match event {
+    @events.Event::Key(key) =>
+      match key {
+        @ffi.KeyEvent::ArrowUp => {
+          if self.offset.val > 0 {
+            self.offset.val = self.offset.val - 1
+          }
+          true
+        }
+        @ffi.KeyEvent::ArrowDown => {
+          let total = self.items.length()
+          let max_offset = if total > self.visible_rows {
+            total - self.visible_rows
+          } else {
+            0
+          }
+          if self.offset.val < max_offset {
+            self.offset.val = self.offset.val + 1
+          }
+          true
+        }
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+pub impl @view.Component for ScrollBox with is_focusable(self) {
+  true
+}

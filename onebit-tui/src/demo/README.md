@@ -1,106 +1,149 @@
-# OneBit-TUI Demos
+# OneBit-TUI Demo Applications
 
-This directory contains demonstration programs showcasing the OneBit-TUI components and features.
-
-## Available Demos
-
-### 1. Interactive Test Demo (`interactive_test_demo.mbt`)
-
-**Purpose**: Test and verify all input handling mechanisms
-
-- Tests keyboard events (all key types)
-- Tests mouse clicks with position tracking
-- Tests focus management (Tab/Shift+Tab navigation)
-- Real-time event logging
-- Visual feedback for state changes
-- Multiple interactive zones
-
-**Features tested**:
-
-- ✓ Keyboard handling
-- ✓ Mouse events with coordinates
-- ✓ Focus system
-- ✓ State management with Ref[T]
-- ✓ Event callbacks
-- ✓ Component interactivity
-- ✓ Real-time updates with text_bind
-
-### 2. Quick Demo (`view_quick_demo.mbt`)
-
-**Purpose**: Main showcase demo with all components
-
-- Settings panel with checkboxes and toggles
-- Table display
-- List selection
-- Text input
-- Modal dialogs
-
-### 3. Forms Demo (`forms_demo.mbt`)
-
-**Purpose**: Showcase form components
-
-- Checkboxes (single and groups)
-- Radio buttons
-- Select/dropdown components
-- Toggle switches
-- Form submission
-
-### 4. Table Demo (`table_demo.mbt`)
-
-**Purpose**: Demonstrate table component
-
-- Column configuration
-- Row selection
-- Keyboard navigation
-- Different border styles
-- Alignment options
-
-### 5. Modal Demo (`modal_demo.mbt`)
-
-**Purpose**: Modal dialog system
-
-- Alert modals
-- Confirm dialogs
-- Custom form modals
-- Focus trap demonstration
-
-### 6. Component Verification (`verify_components.mbt`)
-
-**Purpose**: Automated testing of component functionality
-
-- Non-interactive verification script
-- Tests all core component features
-- Useful for regression testing
+Clean, working demo applications showcasing the OneBit-TUI framework.
 
 ## Running Demos
 
-To run a demo, first set it as the main entry point by ensuring it has `fn main` while others have different names, then:
-
 ```bash
-cd onebit-tui
-moon build --target native
-./target/native/release/build/demo/demo.exe
+# Run the launcher to see all demos
+moon run src/demo/main.mbt
+
+# Or run specific demos directly
+moon run src/demo/todo.mbt        # Todo app
+moon run src/demo/counter.mbt     # Counter app
+moon run src/demo/interactive.mbt # Interactive demo
+moon run src/demo/yoga.mbt        # Layout demo
 ```
 
-## Controls
+## Available Demos
 
-Most demos support these common controls:
+### 1. **Todo App** (`todo.mbt`)
 
-- **Tab**: Move focus forward
-- **Shift+Tab**: Move focus backward
-- **Arrow Keys**: Navigate lists and menus
-- **Space/Enter**: Activate buttons and toggles
-- **Click**: Mouse interaction
-- **q**: Quit the demo
+Full-featured task management application with:
+
+- ✅ Virtual scrolling list widget
+- ✅ Text input for adding tasks
+- ✅ Keyboard navigation (↑↓ arrows, Tab focus)
+- ✅ Task completion toggling (Space key)
+- ✅ Delete tasks ('d' key)
+- ✅ Progress bar showing completion
+- ✅ Focus visual indicators
+- ✅ Responsive flexbox layout
+
+**Controls:**
+
+- `a` - Add new todo (enter input mode)
+- `Space` - Toggle completion
+- `d` - Delete selected todo
+- `↑↓` - Navigate list
+- `Tab` - Switch focus
+- `q` - Quit
+
+### 2. **Counter App** (`counter.mbt`)
+
+Simple state management demonstration:
+
+- Button widgets with actions
+- Mutable state with `Ref[T]`
+- Event callbacks
+- Clean component composition
+
+### 3. **Interactive Demo** (`interactive.mbt`)
+
+Real-time input visualization:
+
+- Keyboard event display
+- Mouse position tracking
+- Click coordinate logging
+- Counter manipulation
+- Live event feedback
+
+### 4. **Yoga Layout Demo** (`yoga.mbt`)
+
+Flexbox layout showcase:
+
+- Row and column layouts
+- Flex grow/shrink
+- Alignment (center, stretch, flex-start)
+- Spacing and padding
+- Nested containers
+- Responsive sizing
 
 ## Architecture
 
-All demos follow the same pattern:
+### Component System
 
-1. Initialize the App with `@core.App::init()`
-2. Create state variables using `Ref[T]`
-3. Build UI tree using View components
-4. Run event loop with `@components.run_event_loop()`
-5. Clean up with `app.cleanup()`
+```moonbit
+// All widgets implement @view.Component trait
+pub(open) trait Component {
+  render(Self) -> View
+  handle_event(Self, Event) -> Bool
+  is_focusable(Self) -> Bool
+}
+```
 
-Components use MoonBit-native patterns with `Ref[T]` for state management and provide full keyboard and mouse support.
+### Clean API - No `.render()` calls needed!
+
+```moonbit
+// Before (verbose)
+@view.View::container([
+  title.render(),
+  button.render(),
+  input.render()
+])
+
+// After (clean)
+@view.View::container([title, button, input])
+```
+
+### State Management
+
+```moonbit
+// Using Ref[T] for mutable state
+let counter = Ref::new(0)
+let text = Ref::new("Hello")
+
+// Update state
+counter.val = counter.val + 1
+text.val = "Updated"
+```
+
+### Event Loop
+
+```moonbit
+@runtime.run_event_loop(
+  app,
+  build_ui,  // () -> View function
+  on_global_event=fn(event) { ... }
+)
+```
+
+## Key Features Demonstrated
+
+1. **Widget-based UI** - Reusable components (Button, Text, TextInput, List, ProgressBar)
+2. **Flexbox Layout** - Via Yoga integration for responsive design
+3. **Event System** - Keyboard, mouse, focus, and resize events
+4. **Focus Management** - Tab navigation with visual indicators
+5. **Virtual Scrolling** - Efficient rendering of large lists
+6. **Type Safety** - MoonBit's strong typing throughout
+
+## Project Structure
+
+```
+demo/
+├── README.md          # This file
+├── main.mbt          # Demo launcher
+├── todo.mbt          # Todo app
+├── counter.mbt       # Counter demo
+├── interactive.mbt   # Input demo
+├── yoga.mbt          # Layout demo
+└── moon.pkg.json     # Package config
+```
+
+## Notes
+
+- All demos use the widget system from `/src/widget/`
+- Components automatically implement `@view.Component` trait
+- No need for explicit `.render()` calls when using `View::container`
+- Focus indicators (cyan borders) work automatically for focusable widgets
+- Terminal resize is handled automatically

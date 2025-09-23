@@ -1,226 +1,300 @@
-# 🌙 OneBit TUI
+# OneBit-TUI
 
-A modern, type-safe terminal UI framework for MoonBit featuring reactive state management and composable components.
+A modern terminal user interface library for MoonBit, featuring declarative components, Yoga-powered flexbox layout, and high-performance native rendering.
 
-## ✨ Features
+## Features
 
-- **Type-Safe Components**: TextInput, List, Table, Modal, Box with full MoonBit type safety
-- **Reactive State Management**: Signal-based reactivity with computed values and effects
-- **Efficient Rendering**: Cell-based buffer system for optimal terminal rendering
-- **Rich Styling**: 24-bit color support, customizable borders, and flexible layouts
-- **Zero Dependencies**: Pure MoonBit implementation
+- 🎨 **Declarative API** - Build UIs with composable View components
+- 📐 **Flexbox Layout** - Powered by Yoga layout engine for responsive designs
+- ⚡ **Native Performance** - Leverages Zig-based renderer for optimal performance
+- 🖼️ **Rich Borders** - Unicode box-drawing with customizable styles
+- 📜 **Overflow Handling** - Built-in scrolling and clipping support
+- ⌨️ **Input Handling** - Full keyboard and mouse event support
+- 🎯 **Focus Management** - Automatic focus traversal and highlighting
 
-## 🚀 Quick Start
+## Installation
 
-```moonbit
-fn main {
-  // Create a text input
-  let mut input = @onebit-tui/components.TextInput::new(
-    value="Hello, OneBit!",
-    width=30,
-    placeholder="Type here..."
-  )
-
-  // Create reactive state
-  let counter = @onebit-tui/reactive.signal(0)
-  let doubled = @onebit-tui/reactive.computed(fn() { counter.get() * 2 })
-
-  // Render to buffer
-  let buf = @onebit-tui/core.Buffer::new(80, 24)
-  input.render(buf, 0, 0)
-}
+```bash
+moon add Frank-III/onebit-tui
 ```
 
-## 📦 Installation
+**Note**: First-time setup requires building the native renderer:
 
-Add OneBit TUI to your `moon.mod.json`:
+```bash
+cd $HOME/.moon/lib/Frank-III/onebit-tui
+./build_ffi.sh
+```
 
-```json
-{
-  "dependencies": {
-    "onebit-tui": "github:yourusername/onebit-tui"
+## Quick Start
+
+```moonbit
+///| Simple counter app
+fn main {
+  let app = @core.App::init()
+  match app {
+    None => println("Failed to initialize")
+    Some(app) => {
+      let counter = Ref::new(0)
+
+      fn build_ui() -> @view.View {
+        @view.View::container_views([
+          @view.View::text("Count: \{counter.val}", color=@core.Color::White),
+          @view.View::text("Press +/- to change", color=@core.Color::Gray)
+        ])
+        .direction(@view.Direction::Column)
+        .padding(2.0)
+        .border(@view.BorderStyle::Single, color=@core.Color::Cyan)
+        .title("Counter")
+        .title_align(@view.TitleAlign::Center)
+      }
+
+      @runtime.run_event_loop(app, build_ui, fn(event) {
+        match event {
+          @ffi.InputEvent::Key(@ffi.KeyEvent::Char(43)) => { // '+'
+            counter.val = counter.val + 1
+            true
+          }
+          @ffi.InputEvent::Key(@ffi.KeyEvent::Char(45)) => { // '-'
+            counter.val = counter.val - 1
+            true
+          }
+          _ => false
+        }
+      })
+
+      app.cleanup()
+    }
   }
 }
 ```
 
-## 🧩 Components
+## Core Concepts
 
-### TextInput
+### Views
 
-Interactive text input with cursor management:
+Views are the building blocks of OneBit-TUI applications:
 
 ```moonbit
-let mut input = @components.TextInput::new(
-  value="Initial text",
-  width=40,
-  placeholder="Enter text..."
-)
+// Text view
+@view.View::text("Hello, World!", color=@core.Color::Green)
+
+// Container with children
+@view.View::container_views([
+  child1,
+  child2,
+])
+.direction(@view.Direction::Row)
+.spacing(1.0)
 ```
 
-### List
+### Layout (Yoga Flexbox)
 
-Scrollable list with selection:
+OneBit-TUI uses Yoga for powerful flexbox layout:
 
 ```moonbit
-let list = @components.List::new(
-  items=[
-    @components.ListItem::Text("Option 1"),
-    @components.ListItem::Text("Option 2"),
-    @components.ListItem::Separator,
-    @components.ListItem::Text("Option 3")
-  ],
-  selected=0,
-  style=@components.ListStyle::new(
-    highlight_color=@core.Color::Yellow,
-    selected_prefix="▶ ",
-    unselected_prefix="  "
-  )
-)
+view
+  .width(50.0)                    // Fixed width
+  .height_percent(50.0)           // 50% of parent height
+  .flex(1.0)                      // Flex grow
+  .padding(2.0)                   // Padding on all sides
+  .margin_symmetric(1.0, 2.0)    // Vertical, horizontal margins
+  .align_items(@types.Align::Center)
+  .justify_content(@types.Justify::SpaceBetween)
 ```
 
-### Table
-
-Data tables with headers:
+### Styling
 
 ```moonbit
-let mut table = @components.Table::new(
-  headers=["Name", "Status", "Progress"],
-  widths=[20, 10, 15]
-)
-table.add_row(["Task 1", "Active", "75%"])
+view
+  .border(@view.BorderStyle::Double, color=@core.Color::Cyan)
+  .title("My Box")
+  .title_align(@view.TitleAlign::Center)
+  .background(@core.rgb(20, 20, 40))
+  .foreground(@core.Color::White)
+  .focused_border_color(@core.Color::Yellow)
 ```
 
-### Modal
+## Built-in Widgets
 
-Popup dialogs:
+### List Widget
 
 ```moonbit
-let modal = @components.Modal::new(
-  title="Confirm",
-  content="Are you sure?",
-  width=40,
-  height=10,
-  style=@components.ModalStyle::new(
-    border_color=@core.Color::Red,
-    title_color=@core.Color::White,
-    content_color=@core.Color::White
-  )
-)
+let items = ["Item 1", "Item 2", "Item 3"]
+let selected = Ref::new(0)
+let list = @widget.List::new(items, selected)
+  .item_renderer(fn(item, index, is_selected) {
+    let prefix = if is_selected { "> " } else { "  " }
+    prefix + item
+  })
 ```
 
-### Box
-
-Container with borders:
+### Text Input
 
 ```moonbit
-let box = @components.Box::new(
-  x=0, y=0,
-  width=50, height=20,
-  border=@components.Border::new(
-    style=@components.BorderStyle::Rounded,
-    color=@core.Color::Cyan
-  ),
-  title="My Box"
-)
+let text_value = Ref::new("")
+let input = @widget.TextInput::new(text_value)
+  .placeholder("Enter text...")
+  .width(30.0)
 ```
 
-## ⚡ Reactive System
-
-OneBit TUI includes a powerful reactive system:
+### Button
 
 ```moonbit
-// Create signals
-let count = @reactive.signal(0)
-let name = @reactive.signal("User")
-
-// Create computed values
-let greeting = @reactive.computed(fn() {
-  "Hello, " + name.get() + "! Count: " + count.get().to_string()
+let button = @widget.Button::new("Click Me", fn() {
+  println("Button clicked!")
 })
-
-// Create effects
-@reactive.effect(fn() {
-  println("Count changed to: " + count.get().to_string())
-})
-
-// Update values
-count.set(count.get() + 1)
-name.set("MoonBit Developer")
 ```
 
-## 🎨 Styling
-
-Rich color support with named colors and RGB:
+### Progress Bar
 
 ```moonbit
-// Named colors
-@core.Color::Red
-@core.Color::Green
-@core.Color::Blue
-@core.Color::Yellow
-@core.Color::Magenta
-@core.Color::Cyan
-
-// RGB colors
-@core.Color::Rgb(255, 128, 0)  // Orange
+let progress = @widget.ProgressBar::new(0.5, style=@widget.ProgressStyle::blocks())
+  .width(40.0)
 ```
 
-Border styles:
+### ScrollBox
 
-- `BorderStyle::Single`
-- `BorderStyle::Double`
-- `BorderStyle::Rounded`
-- `BorderStyle::Bold`
-- `BorderStyle::Ascii`
+```moonbit
+let items = generate_many_items()
+let scroll = @widget.ScrollBox::new(items, visible_rows=10)
+  .border(@view.BorderStyle::Single)
+  .title("Scrollable List")
+```
 
-## 🏃 Examples
+## Event Handling
 
-Check out the `src/examples/` directory for complete examples:
+```moonbit
+// Global event handler
+fn on_global_event(event : @ffi.InputEvent) -> Bool {
+  match event {
+    Key(Escape) => false  // Exit app
+    MouseDown(x, y, button) => {
+      println("Click at \{x}, \{y}")
+      true
+    }
+    Resize(width, height) => {
+      println("Terminal resized to \{width}x\{height}")
+      true
+    }
+    _ => false
+  }
+}
 
-- `components_showcase.mbt` - Demonstrates all components
-- `reactive_counter.mbt` - Interactive counter with reactive state
-- `todo_list.mbt` - Complete TODO list application
-- `basic_demo.mbt` - Simple demo with colors and animations
+// Component-level handlers
+view.on_key(fn(key) {
+  match key {
+    Enter => { do_something(); true }
+    _ => false
+  }
+})
+.on_click(fn(x, y) {
+  println("Clicked at \{x}, \{y}")
+})
+```
 
-Run examples:
+## Focus Management
+
+The focus system automatically handles Tab navigation:
+
+```moonbit
+view
+  .focusable()  // Make focusable
+  .focused_border_color(@core.Color::Yellow)  // Highlight when focused
+```
+
+## Examples
+
+Check out the `src/demo/` directory for complete examples:
+
+- **`todo_app.mbt`** - Full-featured todo list with focus management
+- **`counter.mbt`** - Simple counter with state management
+- **`interactive.mbt`** - Mouse and keyboard interaction demo
+- **`yoga_demo.mbt`** - Advanced flexbox layout examples
+- **`box_demo.mbt`** - Border styles and overflow demonstration
+- **`scroll_demo.mbt`** - Scrolling and viewport management
+
+Run demos:
 
 ```bash
-moon run src/examples --target native
+moon build --target native
+./target/native/release/build/demo/demo.native
 ```
 
-## 🏗️ Architecture
+## Architecture
 
-OneBit TUI is organized into modules:
+OneBit-TUI has a layered architecture:
 
-- **core**: Buffer system, colors, and basic types
-- **components**: UI components (TextInput, List, Table, etc.)
-- **reactive**: Signal-based reactivity system
-- **ui**: Event loop and layout system (work in progress)
-- **ffi**: Terminal FFI bindings (work in progress)
+```
+┌──────────────────────────────────┐
+│         Application Code          │
+├──────────────────────────────────┤
+│      Widgets (List, Input...)     │
+├──────────────────────────────────┤
+│    View System + Event Loop       │
+├──────────────────────────────────┤
+│      Yoga Layout Engine           │
+├──────────────────────────────────┤
+│    FFI Layer (Terminal I/O)       │
+├──────────────────────────────────┤
+│   Native Zig/C Renderer           │
+└──────────────────────────────────┘
+```
 
-## 🚧 Current Status
+## Platform Support
 
-### ✅ Working
+- ✅ **macOS** (x64, ARM64) - Fully supported
+- ✅ **Linux** (x64, ARM64) - Fully supported
+- 🚧 **Windows** - Experimental (requires WSL for now)
 
-- All core components (TextInput, List, Table, Modal, Box)
-- Reactive state management
-- Buffer rendering system
-- Color and styling system
+## Building from Source
 
-### 🔧 In Progress
+```bash
+# Clone the repository
+git clone https://github.com/Frank-III/onebit-tui
+cd onebit-tui
 
-- Event loop integration
-- Terminal FFI for keyboard/mouse input
-- Full interactivity
+# Build native library (one time)
+./build_ffi.sh
 
-## 🤝 Contributing
+# Build the project
+moon build --target native
+
+# Run demos
+./target/native/release/build/demo/demo.native
+```
+
+## Dependencies
+
+- **[onebit-yoga](https://github.com/Frank-III/onebit-yoga)** - Yoga layout engine bindings
+- **Native renderer** - Bundled Zig/C renderer (built automatically)
+
+## Current Limitations
+
+- Windows support is experimental
+- No support for background tasks/timers (coming soon)
+- Limited to terminal capabilities (no images, etc.)
+
+## Contributing
 
 Contributions are welcome! Please feel free to submit issues and pull requests.
 
-## 📄 License
+Areas where help is appreciated:
+
+- Windows platform support
+- Additional widgets
+- Performance optimizations
+- Documentation improvements
+
+## License
 
 MIT License - see LICENSE file for details
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-Built with [MoonBit](https://www.moonbitlang.com/) 🌙
+OneBit-TUI is a MoonBit port of [OpenTUI](https://github.com/stonega/opentui), leveraging its high-performance Zig renderer while providing an idiomatic MoonBit API.
+
+Special thanks to:
+
+- The Yoga Layout team for the flexbox engine
+- The OpenTUI team for the renderer foundation
+- The MoonBit team for the language and tooling

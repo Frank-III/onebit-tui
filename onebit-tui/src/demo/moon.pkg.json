@@ -1,16 +1,20 @@
 {
   "is-main": true,
   "import": [
-    "Frank-III/onebit-tui/ffi",
+    "Frank-III/onebit-tui/widget",
+    "Frank-III/onebit-tui/view",
     "Frank-III/onebit-tui/core",
-    "Frank-III/onebit-tui/components",
+    "Frank-III/onebit-tui/ffi",
+    "Frank-III/onebit-tui/layout",
+    "Frank-III/onebit-tui/runtime",
+    "Frank-III/onebit-tui/events",
+    "Frank-III/onebit-yoga/yoga",
     "Frank-III/onebit-yoga/types"
   ],
   "link": {
     "native": {
-      "cc": "/usr/bin/clang",
-      "cc-flags": "-I..",
-      "cc-link-flags": "-L/Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib -lopentui_ffi -lopentui /Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib/opentui_proper.o -Wl,-rpath,/Users/frankmac/projects/learn_ts/opentui/onebit-tui/lib -L/Users/frankmac/projects/learn_ts/opentui/onebit-yoga/src/ffi -lyoga_wrap -L/Users/frankmac/projects/learn_ts/opentui/onebit-yoga/yoga-install/lib -lyogacore -lc++"
+      "cc": "clang",
+      "cc-link-flags": "-Lsrc/ffi/lib -L.mooncakes/Frank-III/onebit-tui/src/ffi/lib -lopentui -L../onebit-yoga/src/ffi -L.mooncakes/Frank-III/onebit-yoga/src/ffi -lyoga_wrap -L../onebit-yoga/src/ffi/yoga-install/lib -L.mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/lib -lyogacore -lc++"
     }
   }
 }

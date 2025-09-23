@@ -173,3 +173,16 @@ int mb_test_library() {
         return 0; // Failure
     }
 }
+
+// --- Scissor / clip no-op stubs (until upstream provides real API) ---
+void bufferPushScissorRect(OptimizedBuffer* buffer, int32_t x, int32_t y, uint32_t width, uint32_t height) {
+    (void)buffer; (void)x; (void)y; (void)width; (void)height;
+}
+
+void bufferPopScissorRect(OptimizedBuffer* buffer) {
+    (void)buffer;
+}
+
+void bufferClearScissorRects(OptimizedBuffer* buffer) {
+    (void)buffer;
+}

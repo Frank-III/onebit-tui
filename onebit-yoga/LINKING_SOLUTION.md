@@ -29,15 +29,10 @@ The package that declares the `extern "C"` functions needs link configuration:
 Any package that uses the FFI functions (even indirectly) also needs the same link configuration:
 
 ```json
-// src/wrapper/moon.pkg.json
+// src/yoga/moon.pkg.json
 {
-  "import": ["moonbit-community/onebit-yoga/types", "moonbit-community/onebit-yoga/ffi"],
-  "link": {
-    "native": {
-      "cc": "clang",
-      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lyoga-install/lib -lyogacore -lc++"
-    }
-  }
+  "import": ["Frank-III/onebit-yoga/types", "Frank-III/onebit-yoga/ffi"],
+  "link": false
 }
 ```
 
@@ -48,15 +43,14 @@ Main packages (with `"is-main": true`) also need the link configuration:
 // src/examples/moon.pkg.json
 {
   "import": [
-    "moonbit-community/onebit-yoga/types",
-    "moonbit-community/onebit-yoga/ffi",
-    "moonbit-community/onebit-yoga/wrapper"
+    { "path": "Frank-III/onebit-yoga/yoga", "alias": "yoga" },
+    { "path": "Frank-III/onebit-yoga/types", "alias": "types" }
   ],
   "is-main": true,
   "link": {
     "native": {
       "cc": "clang",
-      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lyoga-install/lib -lyogacore -lc++"
+      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lsrc/ffi/yoga-install/lib -lyogacore -lc++"
     }
   }
 }

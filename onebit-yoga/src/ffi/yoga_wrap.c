@@ -186,6 +186,12 @@ int YGNodeNewWithConfig_wrap(int config_handle) {
 void YGNodeFree_wrap(int handle) {
     YGNodeRef node = (YGNodeRef)handle_table_get(&node_table, handle);
     if (node) {
+        // Free any user context associated with this node
+        void* ctx = YGNodeGetContext(node);
+        if (ctx) {
+            free(ctx);
+            YGNodeSetContext(node, NULL);
+        }
         YGNodeFree(node);
         handle_table_remove(&node_table, handle);
         
@@ -218,9 +224,25 @@ static void remove_node_handles_recursive(YGNodeRef node) {
     }
 }
 
+static void free_node_contexts_recursive(YGNodeRef n) {
+    if (!n) return;
+    int child_count = YGNodeGetChildCount(n);
+    for (int i = 0; i < child_count; i++) {
+        YGNodeRef c = YGNodeGetChild(n, i);
+        free_node_contexts_recursive(c);
+    }
+    void* cctx = YGNodeGetContext(n);
+    if (cctx) {
+        free(cctx);
+        YGNodeSetContext(n, NULL);
+    }
+}
+
 void YGNodeFreeRecursive_wrap(int handle) {
     YGNodeRef node = (YGNodeRef)handle_table_get(&node_table, handle);
     if (node) {
+        // Recursively free user contexts to avoid leaks
+        free_node_contexts_recursive(node);
         // First remove all handles for this node and its children
         remove_node_handles_recursive(node);
         // Then free the actual Yoga nodes
@@ -510,6 +532,14 @@ void YGNodeStyleSetBorder_wrap(int handle, int edge, float border) {
     }
 }
 
+// Gap
+void YGNodeStyleSetGap_wrap(int handle, int gutter, float gap) {
+    YGNodeRef node = (YGNodeRef)handle_table_get(&node_table, handle);
+    if (node) {
+        YGNodeStyleSetGap(node, (YGGutter)gutter, gap);
+    }
+}
+
 // Tree management
 void YGNodeInsertChild_wrap(int parent_handle, int child_handle, int index) {
     YGNodeRef parent = (YGNodeRef)handle_table_get(&node_table, parent_handle);
@@ -550,6 +580,61 @@ int YGNodeGetChild_wrap(int parent_handle, int index) {
     
     // Add new handle for child
     return handle_table_add(&node_table, child);
+}
+
+// ---------------- Measure function (fixed) ----------------
+// We provide a simple fixed-size measure callback using node context.
+
+typedef struct {
+    float width;
+    float height;
+} MBMeasureFixed;
+
+static YGSize mb_measure_fixed(
+    YGNodeConstRef node,
+    float width,
+    YGMeasureMode widthMode,
+    float height,
+    YGMeasureMode heightMode
+) {
+    (void)width; (void)widthMode; (void)height; (void)heightMode;
+    MBMeasureFixed* ctx = (MBMeasureFixed*)YGNodeGetContext((YGNodeRef)node);
+    YGSize size;
+    if (!ctx) {
+        size.width = 0.0f;
+        size.height = 0.0f;
+        return size;
+    }
+    size.width = ctx->width;
+    size.height = ctx->height;
+    return size;
+}
+
+// Set a fixed measure function on a node and store width/height in context.
+void YGNodeSetMeasureFuncFixed_wrap(int handle, float width, float height) {
+    YGNodeRef node = (YGNodeRef)handle_table_get(&node_table, handle);
+    if (!node) return;
+    MBMeasureFixed* ctx = (MBMeasureFixed*)YGNodeGetContext(node);
+    if (!ctx) {
+        ctx = (MBMeasureFixed*)malloc(sizeof(MBMeasureFixed));
+        if (!ctx) return;
+        YGNodeSetContext(node, ctx);
+    }
+    ctx->width = width;
+    ctx->height = height;
+    YGNodeSetMeasureFunc(node, mb_measure_fixed);
+}
+
+// Clear any measure function and free context if we own it.
+void YGNodeClearMeasureFunc_wrap(int handle) {
+    YGNodeRef node = (YGNodeRef)handle_table_get(&node_table, handle);
+    if (!node) return;
+    YGNodeSetMeasureFunc(node, NULL);
+    void* ctx = YGNodeGetContext(node);
+    if (ctx) {
+        free(ctx);
+        YGNodeSetContext(node, NULL);
+    }
 }
 #ifdef __cplusplus
 }

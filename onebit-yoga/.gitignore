@@ -6,6 +6,16 @@
 # Yoga library build
 /yoga-install/
 /build/yoga/
+src/ffi/yoga-install/
+src/ffi/vendor/yoga/build/
+src/ffi/*.o
+src/ffi/*.a
+src/ffi/*.dylib
+src/ffi/*.dll
+src/ffi/*.lib
+
+# Stray macOS archive index files
+__.*SYMDEF* 
 
 # MoonBit
 *.mi

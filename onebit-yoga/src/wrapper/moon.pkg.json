@@ -1,9 +1,0 @@
-{
-  "import": ["moonbit-community/onebit-yoga/types", "moonbit-community/onebit-yoga/ffi"],
-  "link": {
-    "native": {
-      "cc": "clang",
-      "cc-link-flags": "-Lsrc/ffi -lyoga_wrap -Lyoga-install/lib -lyogacore -lc++"
-    }
-  }
-}

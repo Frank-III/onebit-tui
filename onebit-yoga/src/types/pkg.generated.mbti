@@ -1,0 +1,161 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "frank-iii/onebit-yoga/types"
+
+// Values
+
+// Errors
+
+// Types and methods
+pub(all) enum Align {
+  Auto
+  FlexStart
+  Center
+  FlexEnd
+  Stretch
+  Baseline
+  SpaceBetween
+  SpaceAround
+  SpaceEvenly
+}
+impl Eq for Align
+impl Show for Align
+
+pub(all) enum BoxSizing {
+  BorderBox
+  ContentBox
+}
+impl Eq for BoxSizing
+impl Show for BoxSizing
+
+pub(all) enum Dimension {
+  Width
+  Height
+}
+impl Eq for Dimension
+impl Show for Dimension
+
+pub(all) enum Direction {
+  Inherit
+  LTR
+  RTL
+}
+impl Eq for Direction
+impl Show for Direction
+
+pub(all) enum Display {
+  Flex
+  None
+  Contents
+}
+impl Eq for Display
+impl Show for Display
+
+pub(all) enum Edge {
+  Left
+  Top
+  Right
+  Bottom
+  Start
+  End
+  Horizontal
+  Vertical
+  All
+}
+impl Eq for Edge
+impl Show for Edge
+
+pub(all) enum FlexDirection {
+  Column
+  ColumnReverse
+  Row
+  RowReverse
+}
+impl Eq for FlexDirection
+impl Show for FlexDirection
+
+pub(all) enum Gutter {
+  Column
+  Row
+  All
+}
+impl Eq for Gutter
+impl Show for Gutter
+
+pub(all) enum Justify {
+  FlexStart
+  Center
+  FlexEnd
+  SpaceBetween
+  SpaceAround
+  SpaceEvenly
+}
+impl Eq for Justify
+impl Show for Justify
+
+pub(all) enum LogLevel {
+  Error
+  Warn
+  Info
+  Debug
+  Verbose
+  Fatal
+}
+impl Eq for LogLevel
+impl Show for LogLevel
+
+pub(all) enum MeasureMode {
+  Undefined
+  Exactly
+  AtMost
+}
+impl Eq for MeasureMode
+impl Show for MeasureMode
+
+pub(all) enum Overflow {
+  Visible
+  Hidden
+  Scroll
+}
+impl Eq for Overflow
+impl Show for Overflow
+
+pub(all) enum PositionType {
+  Static
+  Relative
+  Absolute
+}
+impl Eq for PositionType
+impl Show for PositionType
+
+pub(all) struct Value {
+  value : Float
+  unit : YogaUnit
+}
+fn Value::auto() -> Self
+fn Value::percent(Float) -> Self
+fn Value::point(Float) -> Self
+fn Value::undefined() -> Self
+impl Eq for Value
+impl Show for Value
+
+pub(all) enum Wrap {
+  NoWrap
+  Wrap
+  WrapReverse
+}
+impl Eq for Wrap
+impl Show for Wrap
+
+pub(all) enum YogaUnit {
+  Undefined
+  Point
+  Percent
+  Auto
+}
+impl Eq for YogaUnit
+impl Show for YogaUnit
+
+// Type aliases
+
+// Traits
+

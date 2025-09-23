@@ -1,0 +1,45 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "Frank-III/onebit-tui/demo"
+
+// Values
+fn main_box_demo() -> Unit
+
+fn main_focus_keys() -> Unit
+
+fn main_scroll_demo() -> Unit
+
+fn main_todo_app() -> Unit
+
+fn run_box_demo() -> Unit
+
+fn run_counter() -> Unit
+
+fn run_interactive() -> Unit
+
+fn run_todo() -> Unit
+
+fn run_yoga_demo() -> Unit
+
+fn test_yoga_layout() -> Unit
+
+// Errors
+
+// Types and methods
+pub(all) struct TodoItem {
+  mut text : String
+  mut completed : Bool
+}
+fn TodoItem::new(String) -> Self
+
+pub struct Toggle {
+  label : String
+  state : Ref[Bool]
+  id : Int?
+}
+fn Toggle::new(String, initial? : Bool) -> Self
+impl @Frank-III/onebit-tui/view.Component for Toggle
+
+// Type aliases
+
+// Traits
+

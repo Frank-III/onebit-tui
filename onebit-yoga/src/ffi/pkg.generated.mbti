@@ -1,0 +1,207 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "frank-iii/onebit-yoga/ffi"
+
+import(
+  "frank-iii/onebit-yoga/types"
+)
+
+// Values
+fn yoga_config_free(YogaConfigRef) -> Unit
+
+fn yoga_config_free_native(YogaConfigRef) -> Unit
+
+fn yoga_config_new() -> YogaConfigRef
+
+fn yoga_config_new_native() -> YogaConfigRef
+
+fn yoga_node_calculate_layout(YogaNodeRef, Float, Float, @types.Direction) -> Unit
+
+fn yoga_node_calculate_layout_native(YogaNodeRef, Float, Float, @types.Direction) -> Unit
+
+fn yoga_node_clear_measure(YogaNodeRef) -> Unit
+
+fn yoga_node_clear_measure_native(YogaNodeRef) -> Unit
+
+fn yoga_node_free(YogaNodeRef) -> Unit
+
+fn yoga_node_free_native(YogaNodeRef) -> Unit
+
+fn yoga_node_get_child(YogaNodeRef, Int) -> YogaNodeRef?
+
+fn yoga_node_get_child_count(YogaNodeRef) -> Int
+
+fn yoga_node_get_child_count_native(YogaNodeRef) -> Int
+
+fn yoga_node_get_child_native(YogaNodeRef, Int) -> YogaNodeRef?
+
+fn yoga_node_get_layout(YogaNodeRef) -> Layout
+
+fn yoga_node_get_layout_native(YogaNodeRef) -> Layout
+
+fn yoga_node_insert_child(YogaNodeRef, YogaNodeRef, Int) -> Unit
+
+fn yoga_node_insert_child_native(YogaNodeRef, YogaNodeRef, Int) -> Unit
+
+fn yoga_node_new() -> YogaNodeRef
+
+fn yoga_node_new_native() -> YogaNodeRef
+
+fn yoga_node_new_with_config(YogaConfigRef) -> YogaNodeRef
+
+fn yoga_node_new_with_config_native(YogaConfigRef) -> YogaNodeRef
+
+fn yoga_node_remove_child(YogaNodeRef, YogaNodeRef) -> Unit
+
+fn yoga_node_remove_child_native(YogaNodeRef, YogaNodeRef) -> Unit
+
+fn yoga_node_set_align_content(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_align_content_native(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_align_items(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_align_items_native(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_align_self(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_align_self_native(YogaNodeRef, @types.Align) -> Unit
+
+fn yoga_node_set_display(YogaNodeRef, @types.Display) -> Unit
+
+fn yoga_node_set_display_native(YogaNodeRef, @types.Display) -> Unit
+
+fn yoga_node_set_flex(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_basis(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_basis_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_direction(YogaNodeRef, @types.FlexDirection) -> Unit
+
+fn yoga_node_set_flex_direction_native(YogaNodeRef, @types.FlexDirection) -> Unit
+
+fn yoga_node_set_flex_grow(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_grow_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_shrink(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_shrink_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_flex_wrap(YogaNodeRef, @types.Wrap) -> Unit
+
+fn yoga_node_set_flex_wrap_native(YogaNodeRef, @types.Wrap) -> Unit
+
+fn yoga_node_set_gap(YogaNodeRef, @types.Gutter, Float) -> Unit
+
+fn yoga_node_set_gap_native(YogaNodeRef, @types.Gutter, Float) -> Unit
+
+fn yoga_node_set_height(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_height_auto(YogaNodeRef) -> Unit
+
+fn yoga_node_set_height_auto_native(YogaNodeRef) -> Unit
+
+fn yoga_node_set_height_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_height_percent(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_height_percent_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_justify_content(YogaNodeRef, @types.Justify) -> Unit
+
+fn yoga_node_set_justify_content_native(YogaNodeRef, @types.Justify) -> Unit
+
+fn yoga_node_set_margin(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_margin_auto(YogaNodeRef, @types.Edge) -> Unit
+
+fn yoga_node_set_margin_auto_native(YogaNodeRef, @types.Edge) -> Unit
+
+fn yoga_node_set_margin_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_margin_percent(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_margin_percent_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_measure_fixed(YogaNodeRef, Float, Float) -> Unit
+
+fn yoga_node_set_measure_fixed_native(YogaNodeRef, Float, Float) -> Unit
+
+fn yoga_node_set_padding(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_padding_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_padding_percent(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_padding_percent_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_position(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_position_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_position_percent(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_position_percent_native(YogaNodeRef, @types.Edge, Float) -> Unit
+
+fn yoga_node_set_position_type(YogaNodeRef, @types.PositionType) -> Unit
+
+fn yoga_node_set_position_type_native(YogaNodeRef, @types.PositionType) -> Unit
+
+fn yoga_node_set_width(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_width_auto(YogaNodeRef) -> Unit
+
+fn yoga_node_set_width_auto_native(YogaNodeRef) -> Unit
+
+fn yoga_node_set_width_native(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_width_percent(YogaNodeRef, Float) -> Unit
+
+fn yoga_node_set_width_percent_native(YogaNodeRef, Float) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Layout {
+  left : Float
+  top : Float
+  width : Float
+  height : Float
+}
+impl Eq for Layout
+impl Show for Layout
+
+pub struct MeasureFunc((Float, @types.MeasureMode, Float, @types.MeasureMode) -> Size)
+fn MeasureFunc::inner(Self) -> (Float, @types.MeasureMode, Float, @types.MeasureMode) -> Size
+impl Show for MeasureFunc
+
+pub struct Size {
+  width : Float
+  height : Float
+}
+impl Eq for Size
+impl Show for Size
+
+type YGConfigRef
+
+type YGMeasureFunc
+
+type YGNodeRef
+
+pub(all) struct YogaConfigRef(Int)
+fn YogaConfigRef::inner(Self) -> Int
+impl Eq for YogaConfigRef
+impl Show for YogaConfigRef
+
+pub(all) struct YogaNodeRef(Int)
+fn YogaNodeRef::inner(Self) -> Int
+impl Eq for YogaNodeRef
+impl Show for YogaNodeRef
+
+// Type aliases
+
+// Traits
+

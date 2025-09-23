@@ -14,6 +14,48 @@ type BufferPtr
 ///|
 typealias FixedArray[Double] as Color
 
+// Helper function to convert MoonBit String (UTF-16) to null-terminated UTF-8 Bytes for C FFI
+
+///|
+fn string_to_c_bytes(s : String) -> Bytes {
+  // MoonBit strings are UTF-16, but C expects UTF-8
+  let utf16_bytes = s.to_bytes().to_array()
+  let utf8_arr : Ref[Array[Byte]] = Ref::new([])
+
+  // Convert UTF-16 to UTF-8 (simple ASCII case for now)
+  // For ASCII characters, UTF-16 uses 2 bytes: [char, 0x00]
+  // We need to extract just the character bytes
+  let mut i = 0
+  while i < utf16_bytes.length() {
+    let byte = utf16_bytes[i]
+    let next = if i + 1 < utf16_bytes.length() { utf16_bytes[i + 1] } else { 0 }
+
+    // For ASCII range (0-127), just take the first byte if the second is 0
+    if byte <= 127 && next == 0 {
+      utf8_arr.val.push(byte)
+      i = i + 2 // Skip the null byte
+    } else if byte > 127 || next != 0 {
+      // For now, handle extended ASCII/Unicode simply
+      // This is a simplified conversion - proper UTF-16 to UTF-8 would be more complex
+      utf8_arr.val.push(byte)
+      if next != 0 {
+        utf8_arr.val.push(next)
+      }
+      i = i + 2
+    } else {
+      // Single byte (shouldn't happen in UTF-16 but handle it)
+      utf8_arr.val.push(byte)
+      i = i + 1
+    }
+  }
+
+  // Ensure null termination for C
+  if utf8_arr.val.last() != Some(0) {
+    utf8_arr.val.push(0)
+  }
+  Bytes::from_array(utf8_arr.val)
+}
+
 // Renderer management functions
 
 ///|
@@ -68,6 +110,7 @@ extern "C" fn getBufferHeight(buffer : BufferPtr) -> UInt = "getBufferHeight"
 extern "C" fn bufferClearMB(buffer : BufferPtr, bg : Color) -> Unit = "bufferClearMB"
 
 ///|
+#borrow(text)
 extern "C" fn bufferDrawTextMB(
   buffer : BufferPtr,
   text : Bytes,
@@ -80,6 +123,7 @@ extern "C" fn bufferDrawTextMB(
 ) -> Unit = "bufferDrawTextMB"
 
 ///|
+#borrow(text)
 extern "C" fn bufferDrawTextNoBgMB(
   buffer : BufferPtr,
   text : Bytes,
@@ -542,6 +586,36 @@ pub fn Buffer::clear(
 }
 
 ///|
+/// Push scissor rect for clipping (if upstream supports it; otherwise no-op)
+pub fn Buffer::push_scissor(
+  self : Buffer,
+  x : Int,
+  y : Int,
+  w : Int,
+  h : Int,
+) -> Unit {
+  bufferPushScissorRect(
+    self.ptr,
+    x,
+    y,
+    w.reinterpret_as_uint(),
+    h.reinterpret_as_uint(),
+  )
+}
+
+///|
+/// Pop last scissor rect
+pub fn Buffer::pop_scissor(self : Buffer) -> Unit {
+  bufferPopScissorRect(self.ptr)
+}
+
+///|
+/// Clear all scissor rects
+pub fn Buffer::clear_scissors(self : Buffer) -> Unit {
+  bufferClearScissorRects(self.ptr)
+}
+
+///|
 /// Draw text to the buffer
 pub fn Buffer::draw_text(
   self : Buffer,
@@ -559,8 +633,9 @@ pub fn Buffer::draw_text(
   bold? : Bool = false,
   underline? : Bool = false,
 ) -> Unit {
-  let text_bytes = text.to_bytes()
-  let text_len = text_bytes.length().reinterpret_as_uint()
+  let text_bytes = string_to_c_bytes(text)
+  // The C side expects the byte length (without null terminator)
+  let text_len = (text_bytes.length() - 1).reinterpret_as_uint()
   let fg = FixedArray::make(4, 0.0)
   fg[0] = fg_r
   fg[1] = fg_g
@@ -851,6 +926,7 @@ pub(all) enum MouseButton {
 pub(all) enum InputEvent {
   // Keyboard events
   Key(KeyEvent)
+  KeyMod(KeyEvent, KeyModifiers) // key with modifiers
   // Mouse events  
   MouseMove(Int, Int) // x, y position
   MouseDown(Int, Int, MouseButton) // x, y, button
@@ -882,6 +958,24 @@ pub(all) enum KeyEvent {
   Delete
   F(Int) // Function keys F1-F12
   Unknown // Unknown sequence
+}
+
+///|
+/// Modifier flags for key events from CSI sequences
+pub(all) struct KeyModifiers {
+  ctrl : Bool
+  alt : Bool
+  shift : Bool
+}
+
+///|
+/// Decode xterm-style modifier code (2..8) into KeyModifiers
+fn decode_modifiers(code : Int) -> KeyModifiers {
+  // Mapping based on xterm: 2=Shift, 3=Alt, 4=Shift+Alt, 5=Ctrl, 6=Shift+Ctrl, 7=Alt+Ctrl, 8=Shift+Alt+Ctrl
+  let shift = code == 2 || code == 4 || code == 6 || code == 8
+  let alt = code == 3 || code == 4 || code == 7 || code == 8
+  let ctrl = code == 5 || code == 6 || code == 7 || code == 8
+  { ctrl, alt, shift }
 }
 
 ///|
@@ -925,12 +1019,60 @@ fn parse_csi_sequence() -> InputEvent {
 
   // Parse based on final character
   match final_char {
-    65 => InputEvent::Key(KeyEvent::ArrowUp) // A
-    66 => InputEvent::Key(KeyEvent::ArrowDown) // B
-    67 => InputEvent::Key(KeyEvent::ArrowRight) // C
-    68 => InputEvent::Key(KeyEvent::ArrowLeft) // D
-    72 => InputEvent::Key(KeyEvent::Home) // H
-    70 => InputEvent::Key(KeyEvent::End) // F
+    65 => { // A (ArrowUp)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::ArrowUp, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::ArrowUp)
+    }
+    66 => { // B (ArrowDown)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::ArrowDown, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::ArrowDown)
+    }
+    67 => { // C (ArrowRight)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::ArrowRight, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::ArrowRight)
+    }
+    68 => { // D (ArrowLeft)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::ArrowLeft, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::ArrowLeft)
+    }
+    72 => { // H (Home)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::Home, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::Home)
+    }
+    70 => { // F (End)
+      if param_count >= 2 {
+        let mods = decode_modifiers(params[param_count - 1])
+        if mods.ctrl || mods.alt || mods.shift {
+          return InputEvent::KeyMod(KeyEvent::End, mods)
+        }
+      }
+      InputEvent::Key(KeyEvent::End)
+    }
 
     // Mouse events (ESC[<button;x;y[mM])
     77 | 109 => // 'M' or 'm'
@@ -950,17 +1092,24 @@ fn parse_csi_sequence() -> InputEvent {
     // Page keys with ~
     126 => // '~'
       if param_count > 0 {
-        match params[0] {
-          2 => InputEvent::Key(KeyEvent::Insert)
-          3 => InputEvent::Key(KeyEvent::Delete)
-          5 => InputEvent::Key(KeyEvent::PageUp)
-          6 => InputEvent::Key(KeyEvent::PageDown)
-          // Function keys
-          n if n >= 11 && n <= 15 => InputEvent::Key(KeyEvent::F(n - 10)) // F1-F5
-          n if n >= 17 && n <= 21 => InputEvent::Key(KeyEvent::F(n - 11)) // F6-F10  
-          n if n == 23 || n == 24 => InputEvent::Key(KeyEvent::F(n - 12)) // F11-F12
-          _ => InputEvent::Key(KeyEvent::Unknown)
+        let code = params[0]
+        let base_event = match code {
+          2 => KeyEvent::Insert
+          3 => KeyEvent::Delete
+          5 => KeyEvent::PageUp
+          6 => KeyEvent::PageDown
+          n if n >= 11 && n <= 15 => KeyEvent::F(n - 10)
+          n if n >= 17 && n <= 21 => KeyEvent::F(n - 11)
+          n if n == 23 || n == 24 => KeyEvent::F(n - 12)
+          _ => KeyEvent::Unknown
         }
+        if param_count >= 2 {
+          let mods = decode_modifiers(params[param_count - 1])
+          if mods.ctrl || mods.alt || mods.shift {
+            return InputEvent::KeyMod(base_event, mods)
+          }
+        }
+        InputEvent::Key(base_event)
       } else {
         InputEvent::Key(KeyEvent::Unknown)
       }

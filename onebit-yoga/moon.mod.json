@@ -1,10 +1,14 @@
 {
-  "name": "moonbit-community/onebit-yoga",
-  "version": "0.1.0",
+  "name": "Frank-III/onebit-yoga",
+  "version": "0.2.0",
   "readme": "README.md",
-  "repository": "https://github.com/moonbit-community/onebit-yoga",
+  "repository": "https://github.com/Frank-III/onebit-yoga",
   "license": "MIT",
   "keywords": ["yoga", "layout", "flexbox", "ui"],
   "description": "MoonBit bindings for Yoga Layout Engine",
-  "source": "src"
+  "source": "src",
+  "preferred-target": "native",
+  "scripts": {
+    "postadd": "bash scripts/postadd.sh"
+  }
 }
