@@ -163,10 +163,15 @@ pub fn main_todo_app() -> Unit {
             @ffi.KeyEvent::Backspace =>
               // Delete character
               if new_todo_text.val.length() > 0 {
-                new_todo_text.val = new_todo_text.val.substring(
-                  start=0,
-                  end=new_todo_text.val.length() - 1,
-                )
+                let len = new_todo_text.val.length()
+                let chars : Array[Char] = []
+                for i = 0; i < len - 1; i = i + 1 {
+                  match new_todo_text.val.get_char(i) {
+                    Some(c) => chars.push(c)
+                    None => ()
+                  }
+                }
+                new_todo_text.val = String::from_array(chars)
                 true
               } else {
                 false
@@ -174,7 +179,7 @@ pub fn main_todo_app() -> Unit {
             @ffi.KeyEvent::Char(c) => {
               // Add character
               new_todo_text.val = new_todo_text.val +
-                Char::from_int(c).to_string()
+                c.to_char().unwrap_or(' ').to_string()
               true
             }
             _ => false

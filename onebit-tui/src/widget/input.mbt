@@ -85,15 +85,20 @@ pub impl @view.Component for TextInput with render(self) {
     .on_key(fn(key) {
       match key {
         @ffi.KeyEvent::Char(c) => {
-          self.value.val = self.value.val + Char::from_int(c).to_string()
+          self.value.val = self.value.val + c.to_char().unwrap_or(' ').to_string()
           true
         }
         @ffi.KeyEvent::Backspace => {
           if self.value.val.length() > 0 {
-            self.value.val = self.value.val.substring(
-              start=0,
-              end=self.value.val.length() - 1,
-            )
+            let len = self.value.val.length()
+            let chars : Array[Char] = []
+            for i = 0; i < len - 1; i = i + 1 {
+              match self.value.val.get_char(i) {
+                Some(c) => chars.push(c)
+                None => ()
+              }
+            }
+            self.value.val = String::from_array(chars)
           }
           true
         }
@@ -114,15 +119,20 @@ pub impl @view.Component for TextInput with handle_event(self, event) {
     @events.Event::Key(key) =>
       match key {
         @ffi.KeyEvent::Char(c) => {
-          self.value.val = self.value.val + Char::from_int(c).to_string()
+          self.value.val = self.value.val + c.to_char().unwrap_or(' ').to_string()
           true
         }
         @ffi.KeyEvent::Backspace => {
           if self.value.val.length() > 0 {
-            self.value.val = self.value.val.substring(
-              start=0,
-              end=self.value.val.length() - 1,
-            )
+            let len = self.value.val.length()
+            let chars : Array[Char] = []
+            for i = 0; i < len - 1; i = i + 1 {
+              match self.value.val.get_char(i) {
+                Some(c) => chars.push(c)
+                None => ()
+              }
+            }
+            self.value.val = String::from_array(chars)
           }
           true
         }

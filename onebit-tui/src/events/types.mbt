@@ -73,7 +73,7 @@ pub fn KeyCode::from_ffi(key : @ffi.KeyEvent) -> KeyCode {
       if c == 32 {
         KeySpace
       } else {
-        KeyChar(Char::from_int(c))
+        KeyChar(c.to_char().unwrap_or(' '))
       }
     @ffi.KeyEvent::Insert | @ffi.KeyEvent::Unknown => KeyChar(' ')
   }
