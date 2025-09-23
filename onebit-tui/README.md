@@ -12,20 +12,42 @@ A modern terminal user interface library for MoonBit, featuring declarative comp
 - ⌨️ **Input Handling** - Full keyboard and mouse event support
 - 🎯 **Focus Management** - Automatic focus traversal and highlighting
 
-## Installation
+## Quick Start
+
+### Installation
 
 ```bash
 moon add Frank-III/onebit-tui
 ```
 
-**Note**: First-time setup requires building the native renderer:
+### Requirements
 
-```bash
-cd $HOME/.moon/lib/Frank-III/onebit-tui
-./build_ffi.sh
+- MoonBit compiler
+- Zig 0.14.x (for building native components)
+- C/C++ toolchain
+
+### Project Setup
+
+Add the following to your main package's `moon.pkg.json`:
+
+```json
+{
+  "link": {
+    "native": {
+      "cc-link-flags": [
+        "-L$(pkg-path:Frank-III/onebit-tui/ffi)/../../target/native/release/ffi",
+        "-L$(pkg-path:Frank-III/onebit-yoga/yoga)/../../target/native/release/yoga",
+        "-lopentui",
+        "-lyoga"
+      ]
+    }
+  }
+}
 ```
 
-## Quick Start
+**Note**: Link flags are required due to current MoonBit limitations. This will be simplified in future releases.
+
+### Hello World Example
 
 ```moonbit
 ///| Simple counter app
@@ -250,22 +272,22 @@ OneBit-TUI has a layered architecture:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Frank-III/onebit-tui
-cd onebit-tui
+git clone https://github.com/Frank-III/opentui
+cd opentui/onebit-tui
 
-# Build native library (one time)
-./build_ffi.sh
+# Install dependencies
+moon install
 
 # Build the project
 moon build --target native
 
 # Run demos
-./target/native/release/build/demo/demo.native
+moon run demo/main
 ```
 
 ## Dependencies
 
-- **[onebit-yoga](https://github.com/Frank-III/onebit-yoga)** - Yoga layout engine bindings
+- **[onebit-yoga](https://github.com/Frank-III/opentui/tree/main/onebit-yoga)** - Yoga layout engine bindings
 - **Native renderer** - Bundled Zig/C renderer (built automatically)
 
 ## Current Limitations
@@ -273,6 +295,38 @@ moon build --target native
 - Windows support is experimental
 - No support for background tasks/timers (coming soon)
 - Limited to terminal capabilities (no images, etc.)
+
+## Troubleshooting
+
+### Build Warnings
+
+You may see ~100 FFI annotation warnings during compilation. These are non-critical and will be addressed in future releases:
+
+```
+Warning: FFI parameter of pointer type should be annotated with either `#borrow` or `#owned`
+```
+
+These warnings don't affect functionality and can be safely ignored.
+
+### Link Errors
+
+If you encounter link errors, ensure:
+
+1. The link flags are properly set in your `moon.pkg.json`
+2. Zig 0.14.x is installed (not 0.15.x which has incompatible APIs)
+3. The native libraries are built in the dependency directory
+
+### Zig Version
+
+OneBit-TUI requires Zig 0.14.x. Install it using:
+
+```bash
+# Using zigup
+zigup 0.14.1
+
+# Or using anyzig
+anyzig install 0.14.1
+```
 
 ## Contributing
 
@@ -285,9 +339,15 @@ Areas where help is appreciated:
 - Performance optimizations
 - Documentation improvements
 
+## Feedback & Support
+
+- **Issues**: [GitHub Issues](https://github.com/Frank-III/opentui/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Frank-III/opentui/discussions)
+- **Package**: [mooncakes.io/Frank-III/onebit-tui](https://mooncakes.io/docs/Frank-III/onebit-tui)
+
 ## License
 
-MIT License - see LICENSE file for details
+Apache-2.0 License - see LICENSE file for details
 
 ## Acknowledgments
 
