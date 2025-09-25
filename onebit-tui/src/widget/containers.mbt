@@ -34,13 +34,13 @@ pub impl @view.Component for Column with render(self) {
 }
 
 ///|
-pub impl @view.Component for Column with handle_event(self, event) {
+pub impl @view.Component for Column with handle_event(_self, _event) {
   // Delegate to children (simplified for now)
   false
 }
 
 ///|
-pub impl @view.Component for Column with is_focusable(self) {
+pub impl @view.Component for Column with is_focusable(_self) {
   false
 }
 
@@ -78,12 +78,12 @@ pub impl @view.Component for Row with render(self) {
 }
 
 ///|
-pub impl @view.Component for Row with handle_event(self, event) {
+pub impl @view.Component for Row with handle_event(_self, _event) {
   // Delegate to children (simplified for now)  
   false
 }
 
 ///|
-pub impl @view.Component for Row with is_focusable(self) {
+pub impl @view.Component for Row with is_focusable(_self) {
   false
 }

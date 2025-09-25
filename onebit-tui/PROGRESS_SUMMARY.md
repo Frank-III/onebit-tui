@@ -1,6 +1,35 @@
 # OneBit-TUI Progress Summary
 
-## ✅ Completed Today
+## ✅ Latest Updates (Sep 24, 2025)
+
+### 1. Text Wrapping Support
+
+- Implemented TextArea widget with full text wrapping capabilities
+- Added FFI bindings for text buffer operations in `ffi/text_buffer.mbt`
+- Supports two wrap modes:
+  - Word wrap - breaks at word boundaries
+  - Character wrap - breaks at exact width
+- Full scrolling support (arrows, page up/down, home/end)
+
+### 2. Bracketed Paste Support
+
+- Added `Paste(String)` variant to InputEvent enum
+- Updated Event system to handle paste events at the event level
+- TextInput widget now properly handles multi-line paste operations
+
+### 3. New Widgets
+
+- **TextArea** - Multi-line text display with wrapping and scrolling
+- **TabSelect** - Horizontal tab selector (like browser tabs)
+- **Select** - Dropdown selection widget (fixed positioning)
+
+### 4. Architecture Improvements
+
+- Fixed cyclic dependency between core and ffi packages
+- Improved string manipulation using MoonBit iterators
+- Better error handling with proper slicing operations
+
+## ✅ Previous Accomplishments
 
 ### 1. Architecture Documentation
 
@@ -11,7 +40,7 @@
 ### 2. Event System Implementation
 
 - Created new `events/` package with clean event types
-- Implemented Event enum with Key, Mouse, and Focus variants
+- Implemented Event enum with Key, Mouse, Focus, and Paste variants
 - Added EventHandler trait for flexible event handling
 - Proper KeyCode mapping from FFI types
 
@@ -24,18 +53,15 @@
   - `is_focusable(Self) -> Bool` - Check if component can receive focus
 - All widgets now implement the Component trait properly
 
-### 4. Trait Objects Support
-
-- Confirmed MoonBit supports trait objects via `&Trait` syntax
-- Successfully used `Array[&Component]` for polymorphic containers
-- Demonstrated working polymorphism in demo
-
-### 5. Widget Updates
+### 4. Widget Library
 
 - Updated all widgets to use new Component trait:
   - ✅ Button - Full event handling (Enter, Space, Mouse clicks)
   - ✅ Text - Display only, no event handling
-  - ✅ TextInput - Keyboard input handling
+  - ✅ TextInput - Keyboard input with paste support
+  - ✅ TextArea - Multi-line text with wrapping
+  - ✅ Select - Dropdown selection
+  - ✅ TabSelect - Tab navigation
   - ✅ Row/Column - Container composability with trait objects
 
 ### 6. Build System
@@ -72,7 +98,7 @@ onebit-tui/
 | Components       |            |         |                              |
 | - Button         | ✅         | ✅      | Complete with events         |
 | - TextInput      | ⚡         | ✅      | Basic implementation         |
-| - List/Select    | 🔄         | ✅      | In progress                  |
+| - List/Select    | ✅         | ✅      | Complete with events         |
 | - Progress       | 🔄         | ✅      | TODO                         |
 | - Modal          | ❌         | ✅      | TODO                         |
 
@@ -161,6 +187,7 @@ Legend: ✅ Complete | ⚡ Partial | 🔄 In Progress | ❌ Not Started
 ## 🚀 Latest Session Updates
 
 ### New Widgets Completed
+
 1. **List Widget** (`widget/list.mbt`)
    - Generic list with item selection
    - Full keyboard navigation (Arrow keys, Home, End, Enter)
@@ -182,7 +209,17 @@ Legend: ✅ Complete | ⚡ Partial | 🔄 In Progress | ❌ Not Started
    - Customizable width and label
    - Different character styles for filled/empty
 
+4. **Select Widget** (`widget/select.mbt`) ✨ NEW
+   - Dropdown selection from generic array of options
+   - Full Yoga layout integration with absolute positioning
+   - Keyboard navigation (arrows, Enter, Space, Escape)
+   - Scrollable dropdown with configurable max visible items
+   - Hover and selection state management
+   - Custom display function for items
+   - On-change callbacks with index and value
+
 ### Architecture Decisions Made
+
 - **widget/ folder** is the primary component implementation location
 - **components/ folder** deprecated - old View-based approach
 - Old demos disabled (button_demo, components_demo, dsl_demo, input_demo)
@@ -190,21 +227,24 @@ Legend: ✅ Complete | ⚡ Partial | 🔄 In Progress | ❌ Not Started
 - Confirmed MoonBit trait objects work with `&Component` syntax
 
 ### What's Working Now
+
 - ✅ Component trait with polymorphism
 - ✅ Event system with Key, Mouse, Focus events
 - ✅ Focus management with Tab navigation
 - ✅ List widget with full keyboard support
+- ✅ Select/Dropdown widget with Yoga positioning
 - ✅ All widgets implementing unified Component trait
 - ✅ Zero build errors - clean compilation
 
 ### Demo Results
+
 Running the widget showcase demonstrates:
+
 - List navigation and selection working
 - Focus manager successfully cycling through components
 - Event delegation functioning properly
 - All widgets rendering to Views correctly
 - Trait objects enabling polymorphic containers
-
 
 ## 📐 Yoga Layout Integration Confirmed
 
@@ -216,6 +256,7 @@ Running the widget showcase demonstrates:
 4. **Rendering**: Uses calculated layout for drawing
 
 ### Yoga Properties Working
+
 - ✅ FlexDirection (Row/Column)
 - ✅ Flex (grow factor for remaining space)
 - ✅ Width/Height (Fixed, Percent, Auto)
@@ -225,14 +266,16 @@ Running the widget showcase demonstrates:
 - ✅ Absolute/Relative positioning
 
 ### Demo Results
+
 The Yoga layout demo shows:
+
 - Sidebar with fixed width (25 units)
 - Main content with flex:1 (takes remaining 55 units)
 - Correct position calculations
 - Proper size distribution
 
 ### Key Integration Points
+
 - `layout/layout_engine.mbt` - Bridges Views to Yoga
 - `onebit-yoga/` - FFI bindings to Yoga C++ library
 - All layout math handled by Facebook's battle-tested Yoga engine
-

@@ -29,9 +29,9 @@ pub struct View {
   mut title_align : TitleAlign?
 
   // Position
-  position_type : Position?
-  top_offset : Double?
-  left_offset : Double?
+  mut position_type : Position?
+  mut top_offset : Double?
+  mut left_offset : Double?
 
   // Content
   content : ViewContent
@@ -349,6 +349,36 @@ pub fn View::justify_content(self : View, justify : @types.Justify) -> View {
 ///|
 pub fn View::overflow_y(self : View, overflow : Overflow) -> View {
   self.overflow_y = Some(overflow)
+  self
+}
+
+///|
+/// Set position type (relative or absolute)
+pub fn View::position(self : View, pos : Position) -> View {
+  self.position_type = Some(pos)
+  self
+}
+
+///|
+/// Set top offset for positioned elements
+pub fn View::top(self : View, offset : Double) -> View {
+  self.top_offset = Some(offset)
+  self
+}
+
+///|
+/// Set left offset for positioned elements
+pub fn View::left(self : View, offset : Double) -> View {
+  self.left_offset = Some(offset)
+  self
+}
+
+///|
+/// Helper for margin-top (using Yoga's margin edge)
+pub fn View::margin_top(self : View, m : Double) -> View {
+  // This would need proper edge-specific margin support in the struct
+  // For now, we'll use general margin as a workaround
+  self.margin_value = Some(m)
   self
 }
 

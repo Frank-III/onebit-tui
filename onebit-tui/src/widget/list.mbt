@@ -251,6 +251,6 @@ pub impl[T] @view.Component for List[T] with handle_event(self, event) {
 }
 
 ///|
-pub impl[T] @view.Component for List[T] with is_focusable(self) {
+pub impl[T] @view.Component for List[T] with is_focusable(_self) {
   true
 }

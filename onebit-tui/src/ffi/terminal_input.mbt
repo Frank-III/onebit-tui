@@ -4,23 +4,37 @@
 /// These are critical for interactive TUI applications
 
 // Keyboard input functions (mouse functions already in terminal_ffi.mbt)
+#borrow(renderer)
 extern "C" fn enableKittyKeyboardR(
   renderer : RendererPtr,
   flags : Byte,
 ) -> Unit = "enableKittyKeyboard"
 
 ///|
+#borrow(renderer)
 extern "C" fn disableKittyKeyboardR(renderer : RendererPtr) -> Unit = "disableKittyKeyboard"
+
+// Bracketed Paste Mode
+
+///|
+/// Enable bracketed paste mode - allows detecting pasted text
+#borrow(renderer)
+extern "C" fn setBracketedPasteR(
+  renderer : RendererPtr,
+  enable : Bool,
+) -> Unit = "setBracketedPaste"
 
 // Terminal capabilities
 
 ///|
+#borrow(renderer, caps_ptr)
 extern "C" fn getTerminalCapabilitiesR(
   renderer : RendererPtr,
   caps_ptr : TerminalCapabilitiesPtr,
 ) -> Unit = "getTerminalCapabilities"
 
 ///|
+#borrow(renderer, response)
 extern "C" fn processCapabilityResponseR(
   renderer : RendererPtr,
   response : Bytes,
@@ -30,6 +44,7 @@ extern "C" fn processCapabilityResponseR(
 // Cursor control
 
 ///|
+#borrow(renderer)
 extern "C" fn setCursorPositionR(
   renderer : RendererPtr,
   x : Int,
@@ -38,6 +53,7 @@ extern "C" fn setCursorPositionR(
 ) -> Unit = "setCursorPosition"
 
 ///|
+#borrow(renderer, style)
 extern "C" fn setCursorStyleR(
   renderer : RendererPtr,
   style : Bytes,
@@ -46,14 +62,17 @@ extern "C" fn setCursorStyleR(
 ) -> Unit = "setCursorStyle"
 
 ///|
+#borrow(renderer, color)
 extern "C" fn setCursorColorR(renderer : RendererPtr, color : Color) -> Unit = "setCursorColor"
 
 // Terminal management
 
 ///|
+#borrow(renderer)
 extern "C" fn clearTerminalR(renderer : RendererPtr) -> Unit = "clearTerminal"
 
 ///|
+#borrow(renderer, title)
 extern "C" fn setTerminalTitleR(
   renderer : RendererPtr,
   title : Bytes,
@@ -61,6 +80,7 @@ extern "C" fn setTerminalTitleR(
 ) -> Unit = "setTerminalTitle"
 
 ///|
+#borrow(renderer)
 extern "C" fn resizeRendererR(
   renderer : RendererPtr,
   width : UInt,
@@ -68,6 +88,7 @@ extern "C" fn resizeRendererR(
 ) -> Unit = "resizeRenderer"
 
 ///|
+#borrow(renderer)
 extern "C" fn setupTerminalR(
   renderer : RendererPtr,
   use_alternate_screen : Bool,
@@ -76,6 +97,7 @@ extern "C" fn setupTerminalR(
 // Hit testing for mouse events
 
 ///|
+#borrow(renderer)
 extern "C" fn addToHitGridR(
   renderer : RendererPtr,
   x : Int,
@@ -86,14 +108,17 @@ extern "C" fn addToHitGridR(
 ) -> Unit = "addToHitGrid"
 
 ///|
+#borrow(renderer)
 extern "C" fn checkHitR(renderer : RendererPtr, x : UInt, y : UInt) -> UInt = "checkHit"
 
 // Debug functions
 
 ///|
+#borrow(renderer)
 extern "C" fn dumpHitGridR(renderer : RendererPtr) -> Unit = "dumpHitGrid"
 
 ///|
+#borrow(renderer)
 extern "C" fn setDebugOverlayR(
   renderer : RendererPtr,
   enabled : Bool,

@@ -34,18 +34,58 @@ Add the following to your main package's `moon.pkg.json`:
 {
   "link": {
     "native": {
+      "cc": "clang",
       "cc-link-flags": [
-        "-L$(pkg-path:Frank-III/onebit-tui/ffi)/../../target/native/release/ffi",
-        "-L$(pkg-path:Frank-III/onebit-yoga/yoga)/../../target/native/release/yoga",
+        "-L.mooncakes/Frank-III/onebit-tui/src/ffi/lib",
         "-lopentui",
-        "-lyoga"
+        "-L.mooncakes/Frank-III/onebit-yoga/src/ffi",
+        "-lyoga_wrap",
+        "-L.mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/lib",
+        "-lyogacore",
+        "-lc++"
       ]
     }
   }
 }
 ```
 
-**Note**: Link flags are required due to current MoonBit limitations. This will be simplified in future releases.
+Notes:
+- Link flags are required due to current MoonBit limitations (deps don’t propagate linker args yet).
+- Paths point to installed package contents under `.mooncakes/…` where OneBit‑TUI’s pre-build places `libopentui.a` and OneBit‑Yoga exposes `libyoga_wrap.a` + `libyogacore.a`.
+- For mono-repo/local dev, you can instead use relative paths to sibling folders, but the above works for consumers after `moon add`.
+
+### Consumer Integration
+
+Add the imports and link flags to your app’s root `moon.pkg.json`:
+
+```json
+{
+  "import": [
+    "Frank-III/onebit-tui/widget",
+    "Frank-III/onebit-tui/view",
+    "Frank-III/onebit-tui/core",
+    "Frank-III/onebit-tui/layout",
+    "Frank-III/onebit-tui/runtime",
+    { "path": "Frank-III/onebit-yoga/yoga", "alias": "yoga" },
+    { "path": "Frank-III/onebit-yoga/types", "alias": "types" }
+  ],
+  "is-main": true,
+  "link": {
+    "native": {
+      "cc": "clang",
+      "cc-link-flags": [
+        "-L.mooncakes/Frank-III/onebit-tui/src/ffi/lib",
+        "-lopentui",
+        "-L.mooncakes/Frank-III/onebit-yoga/src/ffi",
+        "-lyoga_wrap",
+        "-L.mooncakes/Frank-III/onebit-yoga/src/ffi/yoga-install/lib",
+        "-lyogacore",
+        "-lc++"
+      ]
+    }
+  }
+}
+```
 
 ### Hello World Example
 
@@ -285,6 +325,11 @@ moon build --target native
 moon run demo/main
 ```
 
+Distribution details:
+- OneBit‑TUI vendors OpenTUI’s Zig sources under `src/ffi/vendor/opentui` and compiles a static library during `pre-build` to `src/ffi/lib/libopentui.a`.
+- OneBit‑Yoga vendors Yoga, builds `yoga-install/lib/libyogacore.a`, and provides `src/ffi/libyoga_wrap.a`.
+- No network is required at build-time for consumers if vendor sources are included in the published package; ensure Zig 0.14.x is available.
+
 ## Dependencies
 
 - **[onebit-yoga](https://github.com/Frank-III/opentui/tree/main/onebit-yoga)** - Yoga layout engine bindings
@@ -312,9 +357,10 @@ These warnings don't affect functionality and can be safely ignored.
 
 If you encounter link errors, ensure:
 
-1. The link flags are properly set in your `moon.pkg.json`
-2. Zig 0.14.x is installed (not 0.15.x which has incompatible APIs)
-3. The native libraries are built in the dependency directory
+1. The link flags are properly set in your `moon.pkg.json` (see Project Setup)
+2. Zig 0.14.x is installed (0.15.x has incompatible std.Build APIs with current vendor)
+3. OneBit‑TUI’s `libopentui.a` exists at `.mooncakes/Frank-III/onebit-tui/src/ffi/lib/`
+4. OneBit‑Yoga’s `libyoga_wrap.a` and `yoga-install/lib/libyogacore.a` exist under `.mooncakes/Frank-III/onebit-yoga/src/ffi/`
 
 ### Zig Version
 

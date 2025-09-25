@@ -157,12 +157,12 @@ pub impl @view.Component for ProgressBar with render(self) {
 }
 
 ///|
-pub impl @view.Component for ProgressBar with handle_event(self, event) {
+pub impl @view.Component for ProgressBar with handle_event(_self, _event) {
   // Progress bars are display-only, no event handling
   false
 }
 
 ///|
-pub impl @view.Component for ProgressBar with is_focusable(self) {
+pub impl @view.Component for ProgressBar with is_focusable(_self) {
   false
 }

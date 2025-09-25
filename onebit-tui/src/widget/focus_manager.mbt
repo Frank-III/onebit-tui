@@ -35,7 +35,7 @@ pub fn FocusManager::register(
 
 ///|
 /// Sort components by tab index
-fn FocusManager::sort_by_tab_index(self : FocusManager) -> Unit {
+fn FocusManager::sort_by_tab_index(_self : FocusManager) -> Unit {
   // TODO: Implement sorting when MoonBit array sort API is available
   // For now, components are kept in registration order
   // This is actually fine for most use cases

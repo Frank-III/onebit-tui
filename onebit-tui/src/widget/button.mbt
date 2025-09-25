@@ -158,6 +158,6 @@ pub impl @view.Component for Button with handle_event(self, event) {
 }
 
 ///|
-pub impl @view.Component for Button with is_focusable(self) {
+pub impl @view.Component for Button with is_focusable(_self) {
   true
 }

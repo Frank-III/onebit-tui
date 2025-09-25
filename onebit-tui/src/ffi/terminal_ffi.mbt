@@ -62,6 +62,7 @@ fn string_to_c_bytes(s : String) -> Bytes {
 extern "C" fn createRenderer(width : UInt, height : UInt) -> RendererPtr = "createRendererDebug"
 
 ///|
+#borrow(renderer)
 extern "C" fn destroyRenderer(
   renderer : RendererPtr,
   use_alternate_screen : Bool,
@@ -69,21 +70,26 @@ extern "C" fn destroyRenderer(
 ) -> Unit = "destroyRenderer"
 
 ///|
+#borrow(renderer)
 extern "C" fn setUseThread(renderer : RendererPtr, use_thread : Bool) -> Unit = "setUseThread"
 
 ///|
+#borrow(renderer, color)
 extern "C" fn setBackgroundColorMB(
   renderer : RendererPtr,
   color : Color,
 ) -> Unit = "setBackgroundColorMB"
 
 ///|
+#borrow(renderer)
 extern "C" fn render(renderer : RendererPtr, force : Bool) -> Unit = "render"
 
 ///|
+#borrow(renderer)
 extern "C" fn getNextBuffer(renderer : RendererPtr) -> BufferPtr = "getNextBuffer"
 
 ///|
+#borrow(renderer)
 extern "C" fn getCurrentBuffer(renderer : RendererPtr) -> BufferPtr = "getCurrentBuffer"
 
 // Buffer management functions
@@ -96,21 +102,25 @@ extern "C" fn createOptimizedBuffer(
 ) -> BufferPtr? = "createOptimizedBufferSimple"
 
 ///|
+#borrow(buffer)
 extern "C" fn destroyOptimizedBuffer(buffer : BufferPtr) -> Unit = "destroyOptimizedBuffer"
 
 ///|
+#borrow(buffer)
 extern "C" fn getBufferWidth(buffer : BufferPtr) -> UInt = "getBufferWidth"
 
 ///|
+#borrow(buffer)
 extern "C" fn getBufferHeight(buffer : BufferPtr) -> UInt = "getBufferHeight"
 
 // Buffer drawing functions - use MB variants that handle Double->Float conversion
 
 ///|
+#borrow(buffer, bg)
 extern "C" fn bufferClearMB(buffer : BufferPtr, bg : Color) -> Unit = "bufferClearMB"
 
 ///|
-#borrow(text)
+#borrow(buffer, text, fg, bg)
 extern "C" fn bufferDrawTextMB(
   buffer : BufferPtr,
   text : Bytes,
@@ -123,7 +133,7 @@ extern "C" fn bufferDrawTextMB(
 ) -> Unit = "bufferDrawTextMB"
 
 ///|
-#borrow(text)
+#borrow(buffer, text, fg)
 extern "C" fn bufferDrawTextNoBgMB(
   buffer : BufferPtr,
   text : Bytes,
@@ -135,6 +145,7 @@ extern "C" fn bufferDrawTextNoBgMB(
 ) -> Unit = "bufferDrawTextNoBgMB"
 
 ///|
+#borrow(buffer, bg)
 extern "C" fn bufferFillRectMB(
   buffer : BufferPtr,
   x : UInt,
@@ -150,6 +161,7 @@ extern "C" fn bufferFillRectMB(
 extern "C" fn setCursorPosition(x : Int, y : Int, visible : Bool) -> Unit = "setCursorPosition"
 
 ///|
+#borrow(style)
 extern "C" fn setCursorStyle(
   style : Bytes,
   style_len : UInt,
@@ -157,14 +169,17 @@ extern "C" fn setCursorStyle(
 ) -> Unit = "setCursorStyle"
 
 ///|
+#borrow(color)
 extern "C" fn setCursorColorMB(color : Color) -> Unit = "setCursorColorMB"
 
 // Terminal control functions
 
 ///|
+#borrow(renderer)
 extern "C" fn clearTerminal(renderer : RendererPtr) -> Unit = "clearTerminal"
 
 ///|
+#borrow(renderer)
 extern "C" fn resizeRenderer(
   renderer : RendererPtr,
   width : UInt,
@@ -174,6 +189,7 @@ extern "C" fn resizeRenderer(
 // Newer renderer-scoped cursor control (adapts to old symbols via C wrapper)
 
 ///|
+#borrow(renderer)
 extern "C" fn setCursorPositionRMB(
   renderer : RendererPtr,
   x : Int,
@@ -182,6 +198,7 @@ extern "C" fn setCursorPositionRMB(
 ) -> Unit = "setCursorPositionRMB"
 
 ///|
+#borrow(renderer, style)
 extern "C" fn setCursorStyleRMB(
   renderer : RendererPtr,
   style : Bytes,
@@ -190,23 +207,28 @@ extern "C" fn setCursorStyleRMB(
 ) -> Unit = "setCursorStyleRMB"
 
 ///|
+#borrow(renderer, color)
 extern "C" fn setCursorColorRMB(renderer : RendererPtr, color : Color) -> Unit = "setCursorColorRMB"
 
 // Newer renderer controls
 
 ///|
+#borrow(renderer)
 extern "C" fn enableMouseR(
   renderer : RendererPtr,
   enable_movement : Bool,
 ) -> Unit = "enableMouseR"
 
 ///|
+#borrow(renderer)
 extern "C" fn disableMouseR(renderer : RendererPtr) -> Unit = "disableMouseR"
 
 ///|
+#borrow(renderer)
 extern "C" fn setRenderOffsetR(renderer : RendererPtr, offset : UInt) -> Unit = "setRenderOffsetR"
 
 ///|
+#borrow(renderer)
 extern "C" fn updateStatsR(
   renderer : RendererPtr,
   time : Double,
@@ -215,6 +237,7 @@ extern "C" fn updateStatsR(
 ) -> Unit = "updateStatsR"
 
 ///|
+#borrow(renderer)
 extern "C" fn updateMemoryStatsR(
   renderer : RendererPtr,
   heap_used : UInt,
@@ -225,6 +248,7 @@ extern "C" fn updateMemoryStatsR(
 // Hit testing for mouse events
 
 ///|
+#borrow(renderer)
 extern "C" fn addToHitGrid(
   renderer : RendererPtr,
   x : Int,
@@ -235,14 +259,17 @@ extern "C" fn addToHitGrid(
 ) -> Unit = "addToHitGrid"
 
 ///|
+#borrow(renderer)
 extern "C" fn checkHit(renderer : RendererPtr, x : UInt, y : UInt) -> UInt = "checkHit"
 
 ///|
+#borrow(renderer)
 extern "C" fn dumpHitGrid(renderer : RendererPtr) -> Unit = "dumpHitGrid"
 
 // Scissor rects for clipping
 
 ///|
+#borrow(buffer)
 extern "C" fn bufferPushScissorRect(
   buffer : BufferPtr,
   x : Int,
@@ -252,9 +279,11 @@ extern "C" fn bufferPushScissorRect(
 ) -> Unit = "bufferPushScissorRect"
 
 ///|
+#borrow(buffer)
 extern "C" fn bufferPopScissorRect(buffer : BufferPtr) -> Unit = "bufferPopScissorRect"
 
 ///|
+#borrow(buffer)
 extern "C" fn bufferClearScissorRects(buffer : BufferPtr) -> Unit = "bufferClearScissorRects"
 
 // Enhanced buffer creation & drawing
@@ -268,6 +297,7 @@ extern "C" fn createOptimizedBuffer2(
 ) -> BufferPtr? = "createOptimizedBuffer2"
 
 ///|
+#borrow(buffer, fg, bg)
 extern "C" fn bufferSetCellWithAlphaBlendingMB(
   buffer : BufferPtr,
   x : UInt,
@@ -279,6 +309,7 @@ extern "C" fn bufferSetCellWithAlphaBlendingMB(
 ) -> Unit = "bufferSetCellWithAlphaBlendingMB"
 
 ///|
+#borrow(buffer, border_chars, border_color, background_color, title)
 extern "C" fn bufferDrawBoxMB(
   buffer : BufferPtr,
   x : Int,
@@ -294,6 +325,7 @@ extern "C" fn bufferDrawBoxMB(
 ) -> Unit = "bufferDrawBoxMB"
 
 ///|
+#borrow(target, frame_buffer)
 extern "C" fn drawFrameBufferR(
   target : BufferPtr,
   dest_x : Int,
@@ -306,6 +338,7 @@ extern "C" fn drawFrameBufferR(
 ) -> Unit = "drawFrameBufferR"
 
 ///|
+#borrow(buffer, data)
 extern "C" fn bufferDrawPackedBufferR(
   buffer : BufferPtr,
   data : Bytes,
@@ -317,6 +350,7 @@ extern "C" fn bufferDrawPackedBufferR(
 ) -> Unit = "bufferDrawPackedBufferR"
 
 ///|
+#borrow(buffer, pixel_data)
 extern "C" fn bufferDrawSuperSampleBufferR(
   buffer : BufferPtr,
   x : UInt,
@@ -339,6 +373,7 @@ extern "C" fn restoreTerminalMode() -> Int = "restoreTerminalMode"
 extern "C" fn readKeyByte() -> Int = "readKeyByte"
 
 ///|
+#borrow(width, height)
 extern "C" fn getTerminalSize(
   width : FixedArray[UInt],
   height : FixedArray[UInt],
@@ -934,6 +969,7 @@ pub(all) enum InputEvent {
   MouseDrag(Int, Int, MouseButton) // x, y, button being dragged
   // Terminal events
   Resize(UInt, UInt) // new width, height
+  Paste(String) // Bracketed paste event with pasted text
   // No event available
   None
 }

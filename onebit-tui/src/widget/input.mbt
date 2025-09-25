@@ -85,7 +85,8 @@ pub impl @view.Component for TextInput with render(self) {
     .on_key(fn(key) {
       match key {
         @ffi.KeyEvent::Char(c) => {
-          self.value.val = self.value.val + c.to_char().unwrap_or(' ').to_string()
+          self.value.val = self.value.val +
+            c.to_char().unwrap_or(' ').to_string()
           true
         }
         @ffi.KeyEvent::Backspace => {
@@ -119,7 +120,8 @@ pub impl @view.Component for TextInput with handle_event(self, event) {
     @events.Event::Key(key) =>
       match key {
         @ffi.KeyEvent::Char(c) => {
-          self.value.val = self.value.val + c.to_char().unwrap_or(' ').to_string()
+          self.value.val = self.value.val +
+            c.to_char().unwrap_or(' ').to_string()
           true
         }
         @ffi.KeyEvent::Backspace => {
@@ -138,11 +140,16 @@ pub impl @view.Component for TextInput with handle_event(self, event) {
         }
         _ => false
       }
+    @events.Event::Paste(text) => {
+      // Handle bracketed paste - append the pasted text
+      self.value.val = self.value.val + text
+      true
+    }
     _ => false
   }
 }
 
 ///|
-pub impl @view.Component for TextInput with is_focusable(self) {
+pub impl @view.Component for TextInput with is_focusable(_self) {
   true
 }

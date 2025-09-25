@@ -157,6 +157,6 @@ pub impl @view.Component for ScrollBox with handle_event(self, event) {
 }
 
 ///|
-pub impl @view.Component for ScrollBox with is_focusable(self) {
+pub impl @view.Component for ScrollBox with is_focusable(_self) {
   true
 }

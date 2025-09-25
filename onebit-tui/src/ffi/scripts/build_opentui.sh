@@ -23,14 +23,16 @@ fi
 cd "$ROOT_DIR"
 
 if ! command -v zig >/dev/null 2>&1; then
-  echo "Error: 'zig' not found. Please install a supported Zig (0.14.x)." >&2
-  exit 1
+  echo "[onebit-tui] 'zig' not found. Skipping native build (docs/CI safe)." >&2
+  mkdir -p "$OUT_DIR"
+  # Allow checks/docs to proceed without a native lib
+  exit 0
 fi
 
 if [ ! -d "$VENDOR_DIR" ]; then
-  echo "Error: Vendored OpenTUI not found at '$VENDOR_DIR'." >&2
-  echo "Please run the vendor fetch/update script to populate sources, or use a package build containing vendor sources." >&2
-  exit 1
+  echo "[onebit-tui] Vendored OpenTUI not found at '$VENDOR_DIR'. Skipping (docs/CI safe)." >&2
+  mkdir -p "$OUT_DIR"
+  exit 0
 fi
 
 mkdir -p "$OUT_DIR"
@@ -52,6 +54,11 @@ fi
 if grep -q "checkZigVersion();" "$BUILD_FILE"; then
   echo "Disabling Zig version check …"
   sed -i.bak 's/checkZigVersion();/\/\/ checkZigVersion();/' "$BUILD_FILE"
+fi
+
+# Clean up backup file created by sed -i.bak to avoid packaging it
+if [ -f "${BUILD_FILE}.bak" ]; then
+  rm -f "${BUILD_FILE}.bak"
 fi
 
 # Check Zig version (require 0.14.x for OpenTUI compatibility)

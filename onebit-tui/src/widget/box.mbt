@@ -91,6 +91,6 @@ pub impl @view.Component for Box with handle_event(_self, _event) {
 }
 
 ///|
-pub impl @view.Component for Box with is_focusable(self) {
+pub impl @view.Component for Box with is_focusable(_self) {
   false
 }

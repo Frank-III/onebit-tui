@@ -4,6 +4,7 @@ pub(all) enum Event {
   Key(@ffi.KeyEvent)
   Mouse(MouseEvent)
   Focus(Bool) // true = gained, false = lost
+  Paste(String) // Bracketed paste event with pasted text
 }
 
 ///|

@@ -76,11 +76,11 @@ pub impl @view.Component for Text with render(self) {
 }
 
 ///|
-pub impl @view.Component for Text with handle_event(self, _event) {
+pub impl @view.Component for Text with handle_event(_self, _event) {
   false // Text doesn't handle input
 }
 
 ///|
-pub impl @view.Component for Text with is_focusable(self) {
+pub impl @view.Component for Text with is_focusable(_self) {
   false
 }
