@@ -1,0 +1,37 @@
+{
+  "is-main": true,
+  "import": [
+    "Frank-III/onebit-tui/widget",
+    "Frank-III/onebit-tui/view",
+    "Frank-III/onebit-tui/core",
+    "Frank-III/onebit-tui/ffi",
+    "Frank-III/onebit-tui/layout",
+    "Frank-III/onebit-tui/runtime",
+    "Frank-III/onebit-tui/events",
+    "Frank-III/onebit-yoga/yoga",
+    "Frank-III/onebit-yoga/types"
+  ],
+  "pre-build": [
+    {
+      "input": [],
+      "output": [
+        "../../onebit-tui/src/ffi/lib/libopentui.a"
+      ],
+      "command": "bash -lc 'mkdir -p ../../onebit-tui/src/ffi/lib; if [ -f ../../../onebit-tui/src/ffi/lib/libopentui.a ]; then cp -f ../../../onebit-tui/src/ffi/lib/libopentui.a ../../onebit-tui/src/ffi/lib/; fi'"
+    },
+    {
+      "input": [],
+      "output": [
+        "../../onebit-yoga/src/ffi/libyoga_wrap.a",
+        "../../onebit-yoga/src/ffi/yoga-install/lib/libyogacore.a"
+      ],
+      "command": "bash -lc 'mkdir -p ../../onebit-yoga/src/ffi ../../onebit-yoga/src/ffi/yoga-install/lib; if [ -f ../../../onebit-yoga/src/ffi/libyoga_wrap.a ]; then cp -f ../../../onebit-yoga/src/ffi/libyoga_wrap.a ../../onebit-yoga/src/ffi/; fi; if [ -f ../../../onebit-yoga/src/ffi/yoga-install/lib/libyogacore.a ]; then cp -f ../../../onebit-yoga/src/ffi/yoga-install/lib/libyogacore.a ../../onebit-yoga/src/ffi/yoga-install/lib/; fi'"
+    }
+  ],
+  "link": {
+    "native": {
+      "cc": "clang",
+      "cc-link-flags": "-L../../onebit-tui/src/ffi/lib -L../../../onebit-tui/src/ffi/lib -lopentui -L../../onebit-yoga/src/ffi -L../../../onebit-yoga/src/ffi -lyoga_wrap -L../../onebit-yoga/src/ffi/yoga-install/lib -L../../../onebit-yoga/src/ffi/yoga-install/lib -lyogacore -lc++"
+    }
+  }
+}

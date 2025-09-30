@@ -3,6 +3,7 @@
     "Frank-III/onebit-tui/view",
     "Frank-III/onebit-tui/core",
     "Frank-III/onebit-tui/ffi",
-    "Frank-III/onebit-tui/events"
+    "Frank-III/onebit-tui/events",
+    "Frank-III/onebit-yoga/types"
   ]
 }

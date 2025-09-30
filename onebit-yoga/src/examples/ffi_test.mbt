@@ -1,6 +1,6 @@
 ///|
 /// Test Yoga FFI with real library
-fn run_demo() -> Unit {
+test "ffi run demo" {
   println("=== Testing Yoga FFI with Real Library ===")
 
   // Test native FFI functions
@@ -84,7 +84,7 @@ fn test_wrapper_api() -> Unit {
 }
 
 ///|
-fn test_real_yoga_calculations() -> Unit {
+test "real yoga calculations" {
   println("\n3. Testing Real Yoga Calculations:")
   println("----------------------------------")
   let root = @yoga.Node::new()

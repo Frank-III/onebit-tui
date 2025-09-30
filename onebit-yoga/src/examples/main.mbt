@@ -14,6 +14,9 @@ fn main {
 
   // Example 4: Using the builder API
   builder_api_example()
+
+  // Touch an FFI symbol to exercise alias usage (avoid unused alias warnings)
+  let _ = @ffi.yoga_config_new_native
 }
 
 ///|

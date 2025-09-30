@@ -82,7 +82,9 @@ pub impl @view.Component for ScrollBox with render(self) {
     .direction(@view.Direction::Column)
     .padding(self.padding)
     .border(self.border)
+    .focused_border_color(@core.Color::Cyan)
     .height(self.visible_rows.to_double() + 2.0) // approx height incl. border
+    .overflow_y(@view.Overflow::Scroll)
     .focusable()
     .on_key(fn(key) {
       match key {
@@ -114,6 +116,14 @@ pub impl @view.Component for ScrollBox with render(self) {
           self.offset.val = next
           true
         }
+        @ffi.KeyEvent::Home => {
+          self.offset.val = 0
+          true
+        }
+        @ffi.KeyEvent::End => {
+          self.offset.val = max_offset
+          true
+        }
         _ => false
       }
     })
@@ -128,35 +138,15 @@ pub impl @view.Component for ScrollBox with render(self) {
 }
 
 ///|
-pub impl @view.Component for ScrollBox with handle_event(self, event) {
-  match event {
-    @events.Event::Key(key) =>
-      match key {
-        @ffi.KeyEvent::ArrowUp => {
-          if self.offset.val > 0 {
-            self.offset.val = self.offset.val - 1
-          }
-          true
-        }
-        @ffi.KeyEvent::ArrowDown => {
-          let total = self.items.length()
-          let max_offset = if total > self.visible_rows {
-            total - self.visible_rows
-          } else {
-            0
-          }
-          if self.offset.val < max_offset {
-            self.offset.val = self.offset.val + 1
-          }
-          true
-        }
-        _ => false
-      }
-    _ => false
-  }
-}
+// Key handling is attached via .on_key on the view; no duplicate handle_event needed.
 
 ///|
 pub impl @view.Component for ScrollBox with is_focusable(_self) {
   true
+}
+
+///|
+pub impl @view.Component for ScrollBox with handle_event(_self, _event) {
+  // Key handling is provided via the view's .on_key; component-level handles nothing.
+  false
 }

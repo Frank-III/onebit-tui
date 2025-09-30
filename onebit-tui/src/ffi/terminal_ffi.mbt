@@ -994,7 +994,7 @@ pub(all) enum KeyEvent {
   Delete
   F(Int) // Function keys F1-F12
   Unknown // Unknown sequence
-}
+} derive(Eq)
 
 ///|
 /// Modifier flags for key events from CSI sequences

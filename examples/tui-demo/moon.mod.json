@@ -1,0 +1,14 @@
+{
+  "name": "sandbox/obt_examples",
+  "version": "0.1.0",
+  "readme": "README.md",
+  "license": "Apache-2.0",
+  "description": "Local examples for OneBit‑TUI (dev-only)",
+  "source": "src",
+  "deps": {
+    "Frank-III/onebit-tui": { "path": "../../onebit-tui" },
+    "Frank-III/onebit-yoga": { "path": "../../onebit-yoga" },
+    "moonbitlang/x": "0.4.32"
+  },
+  "preferred-target": "native"
+}

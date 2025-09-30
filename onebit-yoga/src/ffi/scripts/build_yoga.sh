@@ -11,30 +11,68 @@ VENDOR_DIR_PRIMARY="$ROOT_DIR/vendor/yoga"
 VENDOR_DIR_FALLBACK="$(cd "$ROOT_DIR/../../build/yoga" 2>/dev/null && pwd || true)"
 
 if ! command -v cmake >/dev/null 2>&1; then
-  echo "Error: 'cmake' not found. Please install CMake (>=3.16)." >&2
-  exit 1
+  echo "[onebit-yoga] 'cmake' not found. Skipping native build (docs/CI safe)." >&2
+  exit 0
 fi
 
 if ! command -v make >/dev/null 2>&1; then
-  echo "Error: 'make' not found." >&2
-  exit 1
+  echo "[onebit-yoga] 'make' not found. Skipping native build (docs/CI safe)." >&2
+  exit 0
 fi
 
-SRC_DIR=""
+SRC_BASE=""
 if [ -d "$VENDOR_DIR_PRIMARY" ]; then
-  SRC_DIR="$VENDOR_DIR_PRIMARY"
+  if [ -f "$VENDOR_DIR_PRIMARY/CMakeLists.txt" ]; then
+    SRC_BASE="$VENDOR_DIR_PRIMARY"
+  elif [ -f "$VENDOR_DIR_PRIMARY/yoga/CMakeLists.txt" ]; then
+    SRC_BASE="$VENDOR_DIR_PRIMARY/yoga"
+  else
+    SRC_BASE="$VENDOR_DIR_PRIMARY"
+  fi
 elif [ -n "$VENDOR_DIR_FALLBACK" ] && [ -d "$VENDOR_DIR_FALLBACK" ]; then
-  SRC_DIR="$VENDOR_DIR_FALLBACK"
+  if [ -f "$VENDOR_DIR_FALLBACK/CMakeLists.txt" ]; then
+    SRC_BASE="$VENDOR_DIR_FALLBACK"
+  elif [ -f "$VENDOR_DIR_FALLBACK/yoga/CMakeLists.txt" ]; then
+    SRC_BASE="$VENDOR_DIR_FALLBACK/yoga"
+  else
+    SRC_BASE="$VENDOR_DIR_FALLBACK"
+  fi
 else
-  echo "Error: Yoga sources not found. Expected at 'vendor/yoga' (packaged) or '../../build/yoga' (dev)." >&2
-  echo "Populate vendor via scripts/vendor_fetch.sh, or place sources accordingly." >&2
-  exit 1
+  echo "[onebit-yoga] Yoga sources not found. Skipping native build (docs/CI safe)." >&2
+  exit 0
 fi
+
+# Start with the detected base directory; may be patched below
+SRC_DIR="$SRC_BASE"
 
 echo "[onebit-yoga] Building Yoga from: $SRC_DIR"
 
 BUILD_DIR="$SRC_DIR/build"
 mkdir -p "$BUILD_DIR"
+
+# If no CMakeLists at SRC_DIR, synthesize a minimal one pointing at yoga/ sources
+if [ ! -f "$SRC_DIR/CMakeLists.txt" ]; then
+  echo "[onebit-yoga] No CMakeLists in $SRC_DIR; generating minimal CMake project …"
+  TMP_MIN="$ROOT_DIR/vendor/yoga.minbuild"
+  rm -rf "$TMP_MIN"
+  mkdir -p "$TMP_MIN"
+  cat > "$TMP_MIN/CMakeLists.txt" <<'EOF'
+cmake_minimum_required(VERSION 3.16)
+project(yogacore C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+file(GLOB_RECURSE YOGA_SOURCES "yoga/*.cpp")
+add_library(yogacore STATIC ${YOGA_SOURCES})
+target_include_directories(yogacore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+install(TARGETS yogacore ARCHIVE DESTINATION lib)
+install(DIRECTORY yoga/ DESTINATION include/yoga FILES_MATCHING PATTERN "*.h")
+EOF
+  mkdir -p "$TMP_MIN/yoga"
+  cp -R "$SRC_BASE/yoga/" "$TMP_MIN/yoga/" 2>/dev/null || true
+  SRC_DIR="$TMP_MIN"
+  BUILD_DIR="$SRC_DIR/build"
+  mkdir -p "$BUILD_DIR"
+fi
 
 # If building from trimmed vendor, patch out tests subdir which is pruned
 if [ ! -d "$SRC_DIR/tests" ] && [ -f "$SRC_DIR/CMakeLists.txt" ]; then
@@ -44,6 +82,8 @@ if [ ! -d "$SRC_DIR/tests" ] && [ -f "$SRC_DIR/CMakeLists.txt" ]; then
     rm -rf "$TMP_SRC"
     mkdir -p "$TMP_SRC"
     cp -R "$SRC_DIR/" "$TMP_SRC/"
+    # Remove any pre-existing build cache from copied source
+    rm -rf "$TMP_SRC/build"
     sed -i.bak 's/^\(.*add_subdirectory( *tests *).*\)$/# \1 (pruned)/' "$TMP_SRC/CMakeLists.txt" || true
     rm -f "$TMP_SRC/CMakeLists.txt.bak" || true
     SRC_DIR="$TMP_SRC"
@@ -52,26 +92,23 @@ if [ ! -d "$SRC_DIR/tests" ] && [ -f "$SRC_DIR/CMakeLists.txt" ]; then
   fi
 fi
 
-(
-  cd "$BUILD_DIR"
-  cmake .. \
-    -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
-    -DBUILD_SHARED_LIBS=OFF \
-    -DBUILD_TESTING=OFF \
-    -DYOGA_BUILD_TESTS=OFF \
-    -DYOGA_BUILD_BENCHMARKS=OFF || true
+cmake -S "$SRC_DIR" -B "$BUILD_DIR" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_TESTING=OFF \
+  -DYOGA_BUILD_TESTS=OFF \
+  -DYOGA_BUILD_BENCHMARKS=OFF
 
-  # parallel build
-  if command -v nproc >/dev/null 2>&1; then
-    make -j"$(nproc)"
-  elif command -v sysctl >/dev/null 2>&1; then
-    make -j"$(sysctl -n hw.ncpu)"
-  else
-    make -j4
-  fi
-  make install
-)
+# parallel build
+if command -v nproc >/dev/null 2>&1; then
+  cmake --build "$BUILD_DIR" --config Release -j"$(nproc)"
+elif command -v sysctl >/dev/null 2>&1; then
+  cmake --build "$BUILD_DIR" --config Release -j"$(sysctl -n hw.ncpu)"
+else
+  cmake --build "$BUILD_DIR" --config Release -j
+fi
+cmake --install "$BUILD_DIR"
 
 if [ ! -f "$INSTALL_DIR/lib/libyogacore.a" ]; then
   echo "Error: libyogacore.a not found in $INSTALL_DIR/lib" >&2
