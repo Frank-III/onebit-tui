@@ -40,7 +40,23 @@ fn create_yoga_node(view : @view.View) -> @yoga.Node {
     Some(@view.Size::Auto) => node.set_height_auto()
     None => ()
   }
-  // Min/max constraints (pending onebit-yoga export); no-ops for now
+  // Min/max constraints
+  match view.min_width_value {
+    Some(w) => node.set_min_width(w.to_float())
+    None => ()
+  }
+  match view.min_height_value {
+    Some(h) => node.set_min_height(h.to_float())
+    None => ()
+  }
+  match view.max_width_value {
+    Some(w) => node.set_max_width(w.to_float())
+    None => ()
+  }
+  match view.max_height_value {
+    Some(h) => node.set_max_height(h.to_float())
+    None => ()
+  }
 
   // Apply flex properties
   match view.flex_value {
