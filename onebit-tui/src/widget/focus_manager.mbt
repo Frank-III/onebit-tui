@@ -148,8 +148,9 @@ pub fn FocusManager::handle_navigation(
 ) -> Bool {
   match event {
     @events.Event::Key(@ffi.KeyEvent::Tab) =>
-      // TODO: Check for shift modifier when available
       self.focus_next()
+    @events.Event::KeyMod(@ffi.KeyEvent::Tab, mods) =>
+      if mods.shift { self.focus_previous() } else { self.focus_next() }
     // For now, use another key for reverse navigation
     @events.Event::Key(@ffi.KeyEvent::Escape) => {
       self.clear_focus()

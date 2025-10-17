@@ -296,6 +296,14 @@ pub fn yoga_node_free_native(node : YogaNodeRef) -> Unit {
   }
 }
 
+///|
+/// Free a Yoga node and all of its descendants (recursive)
+pub fn yoga_node_free_recursive_native(node : YogaNodeRef) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_free_recursive(YGNodeRef(ref))
+  }
+}
+
 // Convert Direction enum to Yoga constants
 
 ///|
@@ -617,6 +625,34 @@ pub fn yoga_node_set_flex_basis_native(
 ) -> Unit {
   match node {
     YogaNodeRef(ref) => yg_node_style_SetFlexBasis(YGNodeRef(ref), basis)
+  }
+}
+
+///|
+pub fn yoga_node_set_min_width_native(node : YogaNodeRef, width : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetMinWidth(YGNodeRef(ref), width)
+  }
+}
+
+///|
+pub fn yoga_node_set_min_height_native(node : YogaNodeRef, height : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetMinHeight(YGNodeRef(ref), height)
+  }
+}
+
+///|
+pub fn yoga_node_set_max_width_native(node : YogaNodeRef, width : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetMaxWidth(YGNodeRef(ref), width)
+  }
+}
+
+///|
+pub fn yoga_node_set_max_height_native(node : YogaNodeRef, height : Float) -> Unit {
+  match node {
+    YogaNodeRef(ref) => yg_node_style_SetMaxHeight(YGNodeRef(ref), height)
   }
 }
 

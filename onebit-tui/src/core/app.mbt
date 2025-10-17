@@ -63,7 +63,7 @@ pub fn App::draw_rect(
   h : Int,
   color : Color,
 ) -> Unit {
-  let (r, g, b) = color_to_rgb(color)
+  let (r, g, b, a) = color_to_rgba(color)
   self.buffer.fill_rect(
     x.reinterpret_as_uint(),
     y.reinterpret_as_uint(),
@@ -72,7 +72,7 @@ pub fn App::draw_rect(
     r,
     g,
     b,
-    1.0,
+    a,
   )
 }
 

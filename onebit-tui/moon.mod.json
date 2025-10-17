@@ -7,7 +7,7 @@
   "keywords": ["tui", "terminal", "ui", "flexbox", "yoga", "cli"],
   "description": "Modern terminal UI library with Yoga flexbox layout and native performance",
   "deps": {
-    "Frank-III/onebit-yoga": "0.2.4",
+    "Frank-III/onebit-yoga": "0.2.5",
     "moonbitlang/x": "0.4.32"
   },
   "source": "src",

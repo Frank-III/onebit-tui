@@ -1002,6 +1002,7 @@ pub(all) struct KeyModifiers {
   ctrl : Bool
   alt : Bool
   shift : Bool
+  meta : Bool
 }
 
 ///|
@@ -1011,7 +1012,18 @@ fn decode_modifiers(code : Int) -> KeyModifiers {
   let shift = code == 2 || code == 4 || code == 6 || code == 8
   let alt = code == 3 || code == 4 || code == 7 || code == 8
   let ctrl = code == 5 || code == 6 || code == 7 || code == 8
-  { ctrl, alt, shift }
+  { ctrl: ctrl, alt: alt, shift: shift, meta: false }
+}
+
+///|
+/// Decode kitty keyboard modifier bitfield into KeyModifiers
+/// Approx mapping: bit1=Shift, bit2=Alt, bit4=Ctrl, bit8=Meta/Super
+fn decode_kb_kitty_modifiers(code : Int) -> KeyModifiers {
+  let shift = (code & 1) != 0
+  let alt = (code & 2) != 0
+  let ctrl = (code & 4) != 0
+  let meta = (code & 8) != 0
+  { ctrl, alt, shift, meta }
 }
 
 ///|
@@ -1124,6 +1136,17 @@ fn parse_csi_sequence() -> InputEvent {
       } else {
         InputEvent::None
       }
+
+    // Kitty keyboard CSI u: ESC [ <codepoint> ; <modifiers> u
+    117 => { // 'u'
+      if param_count >= 2 {
+        let codepoint = params[0]
+        let mods = decode_kb_kitty_modifiers(params[param_count - 1])
+        return InputEvent::KeyMod(KeyEvent::Char(codepoint), mods)
+      } else {
+        InputEvent::Key(KeyEvent::Unknown)
+      }
+    }
 
     // Page keys with ~
     126 => // '~'
@@ -1267,8 +1290,14 @@ pub fn read_input_event() -> InputEvent {
         // No more bytes, it's just ESC
         InputEvent::Key(KeyEvent::Escape)
       } else {
-        // Some other ESC sequence we don't recognize
-        InputEvent::Key(KeyEvent::Escape)
+        // Treat ESC + printable as Alt+char when not CSI/SS3
+        if next >= 32 && next <= 126 {
+          let mods = KeyModifiers::{ ctrl: false, alt: true, shift: false, meta: false }
+          InputEvent::KeyMod(KeyEvent::Char(next), mods)
+        } else {
+          // Some other ESC sequence we don't recognize
+          InputEvent::Key(KeyEvent::Escape)
+        }
       }
     }
     13 => InputEvent::Key(KeyEvent::Enter)

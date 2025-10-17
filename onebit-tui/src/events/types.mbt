@@ -2,6 +2,7 @@
 /// Core event types for OneBit-TUI
 pub(all) enum Event {
   Key(@ffi.KeyEvent)
+  KeyMod(@ffi.KeyEvent, @ffi.KeyModifiers) // Key with modifiers
   Mouse(MouseEvent)
   Focus(Bool) // true = gained, false = lost
   Paste(String) // Bracketed paste event with pasted text

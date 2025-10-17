@@ -95,19 +95,7 @@ pub impl @view.Component for Button with render(self) {
   let mut view = @view.View::text(self.label, color=self.style.foreground)
     .padding(self.style.padding)
     .focusable()
-    .on_key(fn(key) {
-      match key {
-        @ffi.KeyEvent::Enter => {
-          (self.action)()
-          true
-        }
-        @ffi.KeyEvent::Char(32) => { // Space character
-          (self.action)()
-          true
-        }
-        _ => false
-      }
-    })
+    .on_event(fn(ev) { self.handle_event(ev) })
     .on_click(Some(fn(_, _) { (self.action)() }))
 
   // Apply border if present
@@ -143,6 +131,12 @@ pub impl @view.Component for Button with handle_event(self, event) {
           (self.action)()
           true
         }
+        _ => false
+      }
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::Enter => { (self.action)(); true }
+        @ffi.KeyEvent::Char(32) => { (self.action)(); true }
         _ => false
       }
     @events.Event::Mouse(mouse) =>

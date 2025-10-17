@@ -90,34 +90,30 @@ fn scrollbox_demo_view_complex() -> @view.View {
 }
 
 ///|
-/// Create a simpler ScrollBox demo for testing
-pub fn simple_scrollbox_demo_with(offset_ref : Ref[Int]) -> @view.View {
-  // Create a simple list of text items
+/// Create a simpler ScrollBox demo for testing (stateful widget instance)
+pub fn simple_scrollbox_demo(scroll : @widget.ScrollBox) -> @view.View {
+  // Build items each frame
   let items : Array[&@view.Component] = []
   for i = 1; i <= 30; i = i + 1 {
     items.push(
-      @widget.Text::new("Line \{i}: This is a sample text line for scrolling demonstration")
+      @widget.Text::body("Line \{i}: This is a sample text line for scrolling demonstration")
         .color(if i % 2 == 0 { @core.Color::White } else { @core.Color::Gray })
     )
   }
-  
-  let scroll_offset = offset_ref
-  
+
+  scroll..set_items(items)
+
   @view.View::container_views([
-    @view.View::text("Simple ScrollBox Demo", color=@core.Color::Cyan),
-    @view.View::text("Use ↑/↓ arrows to scroll", color=@core.Color::Gray),
-    
-    @widget.ScrollBox::new(items, visible_rows=10, offset=scroll_offset)
-      .title("30 Items - Showing 10")
-      .border(@view.BorderStyle::Single)
-      .padding(1.0)
-      .render(),
-    
-    @view.View::text("Current offset: \{scroll_offset.val}", color=@core.Color::Yellow),
+    @widget.Text::body("Simple ScrollBox Demo").color(@core.Color::Cyan).render(),
+    @widget.Text::body("Use ↑/↓ arrows to scroll").color(@core.Color::Gray).render(),
+
+    scroll.render(),
+
+    @widget.Text::body("Current offset: \{scroll.get_offset()}").color(@core.Color::Yellow).render(),
   ])
-    .direction(@view.Direction::Column)
-    .spacing(1.0)
-    .padding(2.0)
+  .direction(@view.Direction::Column)
+  .spacing(1.0)
+  .padding(2.0)
 }
 
 ///|
@@ -132,12 +128,14 @@ fn main_scrollbox_demo() -> Unit {
   match app {
     None => println("Failed to initialize app")
     Some(app) => {
-      // Create shared scroll offset (persist across rebuilds)
-      let scroll_offset = Ref::new(0)
+      // Create one persistent ScrollBox widget instance (internal state is kept)
+      let scroll = @widget.ScrollBox::empty(visible_rows=10)
+        .border(@view.BorderStyle::Single)
+        .padding(1.0)
       
       // Build UI function
       fn build_ui() -> @view.View {
-        simple_scrollbox_demo_with(scroll_offset)
+        simple_scrollbox_demo(scroll)
       }
       
       // Run event loop
@@ -145,7 +143,7 @@ fn main_scrollbox_demo() -> Unit {
         match event {
           @ffi.InputEvent::Key(@ffi.KeyEvent::Char(113)) => false  // 'q' to quit
           @ffi.InputEvent::Key(@ffi.KeyEvent::Escape) => false
-          _ => true
+          _ => false  // Let widgets handle by default
         }
       })
       

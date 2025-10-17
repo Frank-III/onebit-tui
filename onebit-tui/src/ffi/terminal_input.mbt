@@ -240,3 +240,8 @@ pub fn Renderer::enable_debug_overlay(
 ) -> Unit {
   setDebugOverlayR(self.ptr, enabled, corner)
 }
+
+///|
+pub fn Renderer::dump_hit_grid(self : Renderer) -> Unit {
+  dumpHitGridR(self.ptr)
+}

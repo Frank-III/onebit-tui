@@ -11,13 +11,28 @@ pub struct View {
   // Layout properties
   mut width : Size?
   mut height : Size?
+  mut min_width_value : Double?
+  mut min_height_value : Double?
+  mut max_width_value : Double?
+  mut max_height_value : Double?
   mut flex_value : Double?
+  mut flex_shrink_value : Double?
   mut layout_direction : Direction?
   mut spacing : Double?
   mut padding_value : Double?
+  mut padding_top_value : Double?
+  mut padding_right_value : Double?
+  mut padding_bottom_value : Double?
+  mut padding_left_value : Double?
   mut margin_value : Double?
+  mut margin_top_value : Double?
+  mut margin_right_value : Double?
+  mut margin_bottom_value : Double?
+  mut margin_left_value : Double?
   mut align_items_value : @types.Align?
   mut justify_content_value : @types.Justify?
+  mut align_self_value : @types.Align?
+  mut flex_basis_value : Double?
 
   // Style properties  
   mut bg_color : @core.Color?
@@ -27,6 +42,8 @@ pub struct View {
   mut focused_border_color : @core.Color?
   mut title_text : String?
   mut title_align : TitleAlign?
+  // Optional caret column for text views (used when focused)
+  mut caret_col : Int?
 
   // Position
   mut position_type : Position?
@@ -41,6 +58,8 @@ pub struct View {
 
   // Event handling (simplified)
   mut key_handler : ((@ffi.KeyEvent) -> Bool)?
+  mut event_handler : ((@events.Event) -> Bool)?
+  mut key_mod_handler : ((@ffi.KeyEvent, @ffi.KeyModifiers) -> Bool)?
   mut click_handler : ((Int, Int) -> Unit)?
 
   // Focus
@@ -105,13 +124,28 @@ pub fn View::empty() -> View {
   {
     width: None,
     height: None,
+    min_width_value: None,
+    min_height_value: None,
+    max_width_value: None,
+    max_height_value: None,
     flex_value: None,
+    flex_shrink_value: None,
     layout_direction: None,
     spacing: None,
     padding_value: None,
+    padding_top_value: None,
+    padding_right_value: None,
+    padding_bottom_value: None,
+    padding_left_value: None,
     margin_value: None,
+    margin_top_value: None,
+    margin_right_value: None,
+    margin_bottom_value: None,
+    margin_left_value: None,
     align_items_value: None,
     justify_content_value: None,
+    align_self_value: None,
+    flex_basis_value: None,
     bg_color: None,
     fg_color: None,
     border_style: None,
@@ -119,12 +153,15 @@ pub fn View::empty() -> View {
     focused_border_color: None,
     title_text: None,
     title_align: None,
+    caret_col: None,
     position_type: None,
     top_offset: None,
     left_offset: None,
     content: ViewContent::Empty,
     children: [],
     key_handler: None,
+    event_handler: None,
+    key_mod_handler: None,
     click_handler: None,
     is_focusable: false,
     is_focused: false,
@@ -142,13 +179,28 @@ pub fn View::text(
   {
     width: None,
     height: None,
+    min_width_value: None,
+    min_height_value: None,
+    max_width_value: None,
+    max_height_value: None,
     flex_value: None,
+    flex_shrink_value: None,
     layout_direction: None,
     spacing: None,
     padding_value: None,
+    padding_top_value: None,
+    padding_right_value: None,
+    padding_bottom_value: None,
+    padding_left_value: None,
     margin_value: None,
+    margin_top_value: None,
+    margin_right_value: None,
+    margin_bottom_value: None,
+    margin_left_value: None,
     align_items_value: None,
     justify_content_value: None,
+    align_self_value: None,
+    flex_basis_value: None,
     bg_color: None,
     fg_color: Some(color),
     border_style: None,
@@ -156,12 +208,15 @@ pub fn View::text(
     focused_border_color: None,
     title_text: None,
     title_align: None,
+    caret_col: None,
     position_type: None,
     top_offset: None,
     left_offset: None,
     content: ViewContent::Text(text),
     children: [],
     key_handler: None,
+    event_handler: None,
+    key_mod_handler: None,
     click_handler: None,
     is_focusable: false,
     is_focused: false,
@@ -176,13 +231,28 @@ pub fn View::container_views(children : Array[View]) -> View {
   {
     width: None,
     height: None,
+    min_width_value: None,
+    min_height_value: None,
+    max_width_value: None,
+    max_height_value: None,
     flex_value: None,
+    flex_shrink_value: None,
     layout_direction: None,
     spacing: None,
     padding_value: None,
+    padding_top_value: None,
+    padding_right_value: None,
+    padding_bottom_value: None,
+    padding_left_value: None,
     margin_value: None,
+    margin_top_value: None,
+    margin_right_value: None,
+    margin_bottom_value: None,
+    margin_left_value: None,
     align_items_value: None,
     justify_content_value: None,
+    align_self_value: None,
+    flex_basis_value: None,
     bg_color: None,
     fg_color: None,
     border_style: None,
@@ -190,12 +260,15 @@ pub fn View::container_views(children : Array[View]) -> View {
     focused_border_color: None,
     title_text: None,
     title_align: None,
+    caret_col: None,
     position_type: None,
     top_offset: None,
     left_offset: None,
     content: ViewContent::Empty,
     children,
     key_handler: None,
+    event_handler: None,
+    key_mod_handler: None,
     click_handler: None,
     is_focusable: false,
     is_focused: false,
@@ -219,8 +292,57 @@ pub fn View::height(self : View, h : Double) -> View {
 }
 
 ///|
+pub fn View::width_percent(self : View, p : Double) -> View {
+  self.width = Some(Size::Percent(p))
+  self
+}
+
+///|
+pub fn View::height_percent(self : View, p : Double) -> View {
+  self.height = Some(Size::Percent(p))
+  self
+}
+
+///|
+pub fn View::min_width(self : View, w : Double) -> View {
+  self.min_width_value = Some(w)
+  self
+}
+
+///|
+pub fn View::min_height(self : View, h : Double) -> View {
+  self.min_height_value = Some(h)
+  self
+}
+
+///|
+pub fn View::max_width(self : View, w : Double) -> View {
+  self.max_width_value = Some(w)
+  self
+}
+
+///|
+pub fn View::max_height(self : View, h : Double) -> View {
+  self.max_height_value = Some(h)
+  self
+}
+
+///|
 pub fn View::flex(self : View, f : Double) -> View {
   self.flex_value = Some(f)
+  self
+}
+
+///|
+/// Set flex-shrink (default upstream is 1)
+pub fn View::shrink(self : View, s : Double) -> View {
+  self.flex_shrink_value = Some(s)
+  self
+}
+
+///|
+pub fn View::flex_basis(self : View, basis : Double) -> View {
+  self.flex_basis_value = Some(basis)
   self
 }
 
@@ -231,8 +353,56 @@ pub fn View::padding(self : View, p : Double) -> View {
 }
 
 ///|
+pub fn View::padding_top(self : View, p : Double) -> View {
+  self.padding_top_value = Some(p)
+  self
+}
+
+///|
+pub fn View::padding_right(self : View, p : Double) -> View {
+  self.padding_right_value = Some(p)
+  self
+}
+
+///|
+pub fn View::padding_bottom(self : View, p : Double) -> View {
+  self.padding_bottom_value = Some(p)
+  self
+}
+
+///|
+pub fn View::padding_left(self : View, p : Double) -> View {
+  self.padding_left_value = Some(p)
+  self
+}
+
+///|
 pub fn View::margin(self : View, m : Double) -> View {
   self.margin_value = Some(m)
+  self
+}
+
+///|
+pub fn View::margin_top(self : View, m : Double) -> View {
+  self.margin_top_value = Some(m)
+  self
+}
+
+///|
+pub fn View::margin_right(self : View, m : Double) -> View {
+  self.margin_right_value = Some(m)
+  self
+}
+
+///|
+pub fn View::margin_bottom(self : View, m : Double) -> View {
+  self.margin_bottom_value = Some(m)
+  self
+}
+
+///|
+pub fn View::margin_left(self : View, m : Double) -> View {
+  self.margin_left_value = Some(m)
   self
 }
 
@@ -275,6 +445,13 @@ pub fn View::title(self : View, text : String) -> View {
 ///|
 pub fn View::title_align(self : View, align : TitleAlign) -> View {
   self.title_align = Some(align)
+  self
+}
+
+///|
+/// Set caret column for text inputs (drawn when focused)
+pub fn View::caret_col(self : View, col : Int) -> View {
+  self.caret_col = Some(col)
   self
 }
 
@@ -322,8 +499,49 @@ pub fn View::on_key(self : View, handler : (@ffi.KeyEvent) -> Bool) -> View {
 }
 
 ///|
+pub fn View::on_key_mod(
+  self : View,
+  handler : (@ffi.KeyEvent, @ffi.KeyModifiers) -> Bool,
+) -> View {
+  self.key_mod_handler = Some(handler)
+  self.is_focusable = true
+  // Auto-assign ID if doesn't have one
+  match self.view_id {
+    None => {
+      self.view_id = Some(view_id_counter.val)
+      view_id_counter.val = view_id_counter.val + 1
+    }
+    Some(_) => ()
+  }
+  self
+}
+
+///|
 pub fn View::on_click(self : View, handler : ((Int, Int) -> Unit)?) -> View {
   self.click_handler = handler
+  // Ensure an ID exists for hit-testing and dispatch
+  match self.view_id {
+    None => {
+      self.view_id = Some(view_id_counter.val)
+      view_id_counter.val = view_id_counter.val + 1
+    }
+    Some(_) => ()
+  }
+  self
+}
+
+///|
+/// Unified event handler; receives Key/KeyMod/Mouse/Paste via runtime dispatch
+pub fn View::on_event(self : View, handler : (@events.Event) -> Bool) -> View {
+  self.event_handler = Some(handler)
+  // Ensure an ID exists for hit-testing and dispatch
+  match self.view_id {
+    None => {
+      self.view_id = Some(view_id_counter.val)
+      view_id_counter.val = view_id_counter.val + 1
+    }
+    Some(_) => ()
+  }
   self
 }
 
@@ -343,6 +561,12 @@ pub fn View::align_items(self : View, align : @types.Align) -> View {
 ///|
 pub fn View::justify_content(self : View, justify : @types.Justify) -> View {
   self.justify_content_value = Some(justify)
+  self
+}
+
+///|
+pub fn View::align_self(self : View, align : @types.Align) -> View {
+  self.align_self_value = Some(align)
   self
 }
 
@@ -375,12 +599,7 @@ pub fn View::left(self : View, offset : Double) -> View {
 
 ///|
 /// Helper for margin-top (using Yoga's margin edge)
-pub fn View::margin_top(self : View, m : Double) -> View {
-  // This would need proper edge-specific margin support in the struct
-  // For now, we'll use general margin as a workaround
-  self.margin_value = Some(m)
-  self
-}
+// margin_top provided above
 
 ///|
 /// Set focus state - used by event dispatcher

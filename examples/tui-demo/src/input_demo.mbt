@@ -1,20 +1,21 @@
 ///|
-/// TextArea demo - word wrapping and scrolling
-fn main_text_area_demo() -> Unit {
+/// TextInput demo - caret, word navigation, and paste
+fn main_input_demo() -> Unit {
   match @core.App::init() {
     None => ()
     Some(app) => {
-      let sample = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor.\n\nCras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat.".to_string()
-      let text_ref = Ref::new(sample)
-      let area = @widget.TextArea::new(text_ref)
-        .size(60.0, 12.0)
+      let text = Ref::new("")
+      let input = @widget.TextInput::new(text)
+        .placeholder("Type here (Ctrl+W/A/E, Alt/Ctrl+←/→)")
+        .width(40.0)
       let status = Ref::new("Keys: (none)".to_string())
 
       fn build_ui() -> @view.View {
         @view.View::container_views([
-          @view.View::text("TextArea Demo", color=@core.Color::Cyan),
-          @view.View::text("Use ↑/↓, PgUp/PgDn, Home/End. Mouse wheel scroll supported.", color=@core.Color::Gray),
-          area.render(),
+          @view.View::text("TextInput Demo", color=@core.Color::Cyan),
+          @view.View::text("Caret visible when focused; Ctrl/Alt+Left/Right = word nav; Ctrl+W/U/K = word/start/end delete; paste supported.", color=@core.Color::Gray),
+          input.render(),
+          @view.View::text("Value: \{text.val}", color=@core.Color::Yellow),
           @view.View::text(status.val, color=@core.Color::Gray),
         ])
         .direction(@view.Direction::Column)
@@ -40,6 +41,7 @@ fn main_text_area_demo() -> Unit {
           _ => false
         }
       })
+
       app.cleanup()
     }
   }

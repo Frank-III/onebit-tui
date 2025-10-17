@@ -1,4 +1,5 @@
-///| OneBit‑TUI Demo Launcher
+///|
+/// OneBit‑TUI Demo Launcher
 fn main {
   println("OneBit-TUI Demo Launcher")
   println("========================")
@@ -13,9 +14,9 @@ fn main {
   println("")
   println("Starting ScrollBox Demo...")
   println("")
-  
+
   // Run a working demo
-  main_scrollbox_demo()
+  main_tab_select_demo()
 }
 
 ///|

@@ -247,40 +247,7 @@ pub impl @view.Component for TextArea with render(self) {
   
   // Make focusable if scrollable
   if self.scrollable {
-    let scroll_amount = inner_height / 2
-    let max_scroll = if wrapped_lines.length() > inner_height { 
-      wrapped_lines.length() - inner_height 
-    } else { 
-      0 
-    }
-    
-    container = container.focusable().on_key(fn(key) {
-      match key {
-        @ffi.KeyEvent::ArrowUp => self.scroll_up()
-        @ffi.KeyEvent::ArrowDown => self.scroll_down()
-        @ffi.KeyEvent::PageUp => {
-          for i = 0; i < scroll_amount; i = i + 1 {
-            let _ = self.scroll_up()
-          }
-          true
-        }
-        @ffi.KeyEvent::PageDown => {
-          for i = 0; i < scroll_amount; i = i + 1 {
-            let _ = self.scroll_down()
-          }
-          true
-        }
-        @ffi.KeyEvent::Home => {
-          self.scroll_offset.val = 0
-          true
-        }
-        @ffi.KeyEvent::End => {
-          self.scroll_offset.val = max_scroll
-          true
-        }
-        _ => false
-      }
-    })
+    container = container.focusable().on_event(fn(ev) { self.handle_event(ev) })
   }
   
   // Apply ID if provided
@@ -292,15 +259,50 @@ pub impl @view.Component for TextArea with render(self) {
 
 ///|
 pub impl @view.Component for TextArea with handle_event(self, event) {
-  if not(self.scrollable) {
-    return false
-  }
-  
+  if not(self.scrollable) { return false }
   match event {
     @events.Event::Key(key) =>
       match key {
         @ffi.KeyEvent::ArrowUp => self.scroll_up()
         @ffi.KeyEvent::ArrowDown => self.scroll_down()
+        @ffi.KeyEvent::PageUp => {
+          let raw = self.height.to_int() - (self.style.padding.to_int() * 2)
+          let step = if raw / 2 < 1 { 1 } else { raw / 2 }
+          for i = 0; i < step; i = i + 1 { let _ = self.scroll_up() }
+          true
+        }
+        @ffi.KeyEvent::PageDown => {
+          let raw = self.height.to_int() - (self.style.padding.to_int() * 2)
+          let step = if raw / 2 < 1 { 1 } else { raw / 2 }
+          for i = 0; i < step; i = i + 1 { let _ = self.scroll_down() }
+          true
+        }
+        @ffi.KeyEvent::Home => { self.scroll_offset.val = 0; true }
+        @ffi.KeyEvent::End => {
+          // Max scroll is computed at render; here approximate by large scroll down
+          for i = 0; i < 1000; i = i + 1 { let _ = self.scroll_down() }
+          true
+        }
+        _ => false
+      }
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::ArrowUp => self.scroll_up()
+        @ffi.KeyEvent::ArrowDown => self.scroll_down()
+        @ffi.KeyEvent::PageUp => {
+          let raw = self.height.to_int() - (self.style.padding.to_int() * 2)
+          let step = if raw / 2 < 1 { 1 } else { raw / 2 }
+          for i = 0; i < step; i = i + 1 { let _ = self.scroll_up() }
+          true
+        }
+        @ffi.KeyEvent::PageDown => {
+          let raw = self.height.to_int() - (self.style.padding.to_int() * 2)
+          let step = if raw / 2 < 1 { 1 } else { raw / 2 }
+          for i = 0; i < step; i = i + 1 { let _ = self.scroll_down() }
+          true
+        }
+        @ffi.KeyEvent::Home => { self.scroll_offset.val = 0; true }
+        @ffi.KeyEvent::End => { for i = 0; i < 1000; i = i + 1 { let _ = self.scroll_down() }; true }
         _ => false
       }
     _ => false

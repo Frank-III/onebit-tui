@@ -133,21 +133,25 @@ pub impl[T] @view.Component for TabSelect[T] with render(self) {
     let is_selected = i == self.selected_index.val
 
     // Create tab with appropriate styling
-    let tab_view = if is_selected {
-      @view.View::text(" \{tab_text} ", color=self.style.active_fg).background(
-        self.style.active_bg,
-      )
+    let mut tab_view = if is_selected {
+      @view.View::text(" \{tab_text} ", color=self.style.active_fg)
+        .background(self.style.active_bg)
+        .padding(1.0)
     } else {
       let mut v = @view.View::text(
         " \{tab_text} ",
         color=self.style.inactive_fg,
-      )
+      ).padding(1.0)
       match self.style.inactive_bg {
         Some(bg) => v = v.background(bg)
         None => ()
       }
       v
     }
+    // Handle per-tab mouse/key events: click selects the tab; Up/Down/Left/Right navigate
+    // Capture index per-iteration to avoid closure capturing the loop variable by reference
+    let idx = i
+    tab_view = tab_view.on_event(fn(ev) { self.handle_tab_event(idx, ev) })
     tab_views.push(tab_view)
 
     // Add separator between tabs (except after last)
@@ -161,21 +165,9 @@ pub impl[T] @view.Component for TabSelect[T] with render(self) {
   // Create container with tabs
   let mut container = @view.View::container_views(tab_views)
     .direction(@view.Direction::Row)
+    .align_self(@types.Align::FlexStart)
     .focusable()
-    .on_key(fn(key) {
-      match key {
-        @ffi.KeyEvent::ArrowLeft => self.select_previous()
-        @ffi.KeyEvent::ArrowRight => self.select_next()
-        @ffi.KeyEvent::Home => self.select_index(0)
-        @ffi.KeyEvent::End => self.select_index(self.tabs.length() - 1)
-        @ffi.KeyEvent::Char(c) if c >= 49 && c <= 57 => {
-          // Number keys 1-9 for quick selection
-          let index = c - 49 // '1' = 49, so index 0
-          self.select_index(index)
-        }
-        _ => false
-      }
-    })
+    .on_event(fn(ev) { self.handle_event(ev) })
 
   // Apply border if specified
   match self.style.border {
@@ -198,6 +190,18 @@ pub impl[T] @view.Component for TabSelect[T] with handle_event(self, event) {
       match key {
         @ffi.KeyEvent::ArrowLeft => self.select_previous()
         @ffi.KeyEvent::ArrowRight => self.select_next()
+        @ffi.KeyEvent::ArrowUp => self.select_previous()
+        @ffi.KeyEvent::ArrowDown => self.select_next()
+        @ffi.KeyEvent::Home => self.select_index(0)
+        @ffi.KeyEvent::End => self.select_index(self.tabs.length() - 1)
+        _ => false
+      }
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::ArrowLeft => self.select_previous()
+        @ffi.KeyEvent::ArrowRight => self.select_next()
+        @ffi.KeyEvent::ArrowUp => self.select_previous()
+        @ffi.KeyEvent::ArrowDown => self.select_next()
         @ffi.KeyEvent::Home => self.select_index(0)
         @ffi.KeyEvent::End => self.select_index(self.tabs.length() - 1)
         _ => false
@@ -212,6 +216,39 @@ pub impl[T] @view.Component for TabSelect[T] with handle_event(self, event) {
           } else {
             self.select_index(0)
           }
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
+/// Handle per-tab events for direct dispatch
+fn[T] TabSelect::handle_tab_event(self : TabSelect[T], index : Int, event : @events.Event) -> Bool {
+  match event {
+    @events.Event::Mouse(mouse_event) =>
+      match mouse_event.action {
+        @events.MouseAction::Click => self.select_index(index)
+        _ => false
+      }
+    @events.Event::Key(key) =>
+      match key {
+        @ffi.KeyEvent::ArrowLeft => self.select_previous()
+        @ffi.KeyEvent::ArrowRight => self.select_next()
+        @ffi.KeyEvent::ArrowUp => self.select_previous()
+        @ffi.KeyEvent::ArrowDown => self.select_next()
+        @ffi.KeyEvent::Home => self.select_index(0)
+        @ffi.KeyEvent::End => self.select_index(self.tabs.length() - 1)
+        _ => false
+      }
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::ArrowLeft => self.select_previous()
+        @ffi.KeyEvent::ArrowRight => self.select_next()
+        @ffi.KeyEvent::ArrowUp => self.select_previous()
+        @ffi.KeyEvent::ArrowDown => self.select_next()
+        @ffi.KeyEvent::Home => self.select_index(0)
+        @ffi.KeyEvent::End => self.select_index(self.tabs.length() - 1)
         _ => false
       }
     _ => false

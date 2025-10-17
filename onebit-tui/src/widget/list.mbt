@@ -1,7 +1,7 @@
 ///|
 /// List Widget - Scrollable list with item selection
 pub struct List[T] {
-  items : Array[T]
+  mut items : Array[T]
   mut selected_index : Int
   mut scroll_offset : Int
   mut visible_items : Int
@@ -38,6 +38,26 @@ pub fn[T] List::new(
 
     },
     style: ListStyle::default(),
+  }
+}
+
+///|
+/// Create an empty list (stateful instance), set items later
+pub fn[T] List::empty(item_renderer : (T, Bool) -> String) -> List[T] {
+  List::new([], item_renderer)
+}
+
+///|
+/// Replace items (Unit-returning; use cascade ..)
+pub fn[T] List::set_items(self : List[T], items : Array[T]) -> Unit {
+  self.items = items
+  // Clamp selection and scroll
+  if self.selected_index >= self.items.length() {
+    self.selected_index = maximum(0, self.items.length() - 1)
+  }
+  let max_offset = maximum(0, self.items.length() - self.visible_items)
+  if self.scroll_offset > max_offset {
+    self.scroll_offset = max_offset
   }
 }
 
@@ -180,11 +200,13 @@ pub impl[T] @view.Component for List[T] with render(self) {
     )
   }
 
-  // Create container
+  // Create container and attach key handling here
   let mut container = @view.View::container_views(item_views)
     .direction(@view.Direction::Column)
     .padding(1.0) // Add padding inside the border
     .flex(1.0) // Make it grow to fill available space
+    .focusable()
+    .on_event(fn(ev) { self.handle_event(ev) })
 
   // Apply max height if specified
   container = match self.style.max_height {
@@ -207,28 +229,31 @@ pub impl[T] @view.Component for List[T] with handle_event(self, event) {
       match key {
         @ffi.KeyEvent::ArrowUp => self.select_previous()
         @ffi.KeyEvent::ArrowDown => self.select_next()
-        @ffi.KeyEvent::Enter =>
-          // Trigger selection
-          match self.get_selected() {
-            Some(item) => {
-              (self.on_select)(item, self.selected_index)
-              true
-            }
-            None => false
-          }
-        @ffi.KeyEvent::Home =>
-          // Jump to first
+        @ffi.KeyEvent::PageUp => {
+          if self.visible_items > 0 {
+            let new_index = maximum(0, self.selected_index - self.visible_items)
+            let _ = self.selected(new_index)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::PageDown => {
+          if self.visible_items > 0 {
+            let last = maximum(0, self.items.length() - 1)
+            let new_index = minimum(last, self.selected_index + self.visible_items)
+            let _ = self.selected(new_index)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::Home => {
           if self.items.length() > 0 {
             self.selected_index = 0
             self.scroll_offset = 0
             let item = self.items[0]
             (self.on_select)(item, 0)
             true
-          } else {
-            false
-          }
+          } else { false }
+        }
         @ffi.KeyEvent::End => {
-          // Jump to last
           let last = self.items.length() - 1
           if last >= 0 {
             self.selected_index = last
@@ -236,16 +261,60 @@ pub impl[T] @view.Component for List[T] with handle_event(self, event) {
             let item = self.items[last]
             (self.on_select)(item, last)
             true
-          } else {
-            false
-          }
+          } else { false }
         }
+        @ffi.KeyEvent::Enter =>
+          match self.get_selected() {
+            Some(item) => { (self.on_select)(item, self.selected_index); true }
+            None => false
+          }
         _ => false
       }
-    @events.Event::Mouse(mouse) if mouse.action == @events.MouseAction::Click =>
-      // TODO: Calculate which item was clicked based on mouse.y
-      // For now, just handle as a general click
-      true
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::ArrowUp => self.select_previous()
+        @ffi.KeyEvent::ArrowDown => self.select_next()
+        @ffi.KeyEvent::PageUp => {
+          if self.visible_items > 0 {
+            let new_index = maximum(0, self.selected_index - self.visible_items)
+            let _ = self.selected(new_index)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::PageDown => {
+          if self.visible_items > 0 {
+            let last = maximum(0, self.items.length() - 1)
+            let new_index = minimum(last, self.selected_index + self.visible_items)
+            let _ = self.selected(new_index)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::Home => {
+          if self.items.length() > 0 {
+            self.selected_index = 0
+            self.scroll_offset = 0
+            let item = self.items[0]
+            (self.on_select)(item, 0)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::End => {
+          let last = self.items.length() - 1
+          if last >= 0 {
+            self.selected_index = last
+            self.scroll_offset = maximum(0, last - self.visible_items + 1)
+            let item = self.items[last]
+            (self.on_select)(item, last)
+            true
+          } else { false }
+        }
+        @ffi.KeyEvent::Enter =>
+          match self.get_selected() {
+            Some(item) => { (self.on_select)(item, self.selected_index); true }
+            None => false
+          }
+        _ => false
+      }
     _ => false
   }
 }

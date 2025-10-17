@@ -138,6 +138,38 @@ fn[T] Select::select_current(self : Select[T]) -> Unit {
 }
 
 ///|
+/// Handle per-item mouse/key events inside the dropdown
+fn[T] Select::handle_item_event(self : Select[T], index : Int, event : @events.Event) -> Bool {
+  match event {
+    @events.Event::Mouse(mouse) =>
+      match mouse.action {
+        @events.MouseAction::Move => { self.hover_index = index; true }
+        @events.MouseAction::Click => { self.hover_index = index; self.select_current(); true }
+        _ => false
+      }
+    @events.Event::Key(key) =>
+      match key {
+        @ffi.KeyEvent::ArrowUp => self.move_up()
+        @ffi.KeyEvent::ArrowDown => self.move_down()
+        @ffi.KeyEvent::Home => { self.hover_index = 0; true }
+        @ffi.KeyEvent::End => { self.hover_index = if self.options.length() > 0 { self.options.length() - 1 } else { 0 }; true }
+        @ffi.KeyEvent::Enter | @ffi.KeyEvent::Char(32) => { self.select_current(); true }
+        _ => false
+      }
+    @events.Event::KeyMod(key, _mods) =>
+      match key {
+        @ffi.KeyEvent::ArrowUp => self.move_up()
+        @ffi.KeyEvent::ArrowDown => self.move_down()
+        @ffi.KeyEvent::Home => { self.hover_index = 0; true }
+        @ffi.KeyEvent::End => { self.hover_index = if self.options.length() > 0 { self.options.length() - 1 } else { 0 }; true }
+        @ffi.KeyEvent::Enter | @ffi.KeyEvent::Char(32) => { self.select_current(); true }
+        _ => false
+      }
+    _ => false
+  }
+}
+
+///|
 /// Implement Component trait for Select
 pub impl[T] @view.Component for Select[T] with render(self) {
   // Get display text
@@ -219,7 +251,10 @@ pub impl[T] @view.Component for Select[T] with render(self) {
         Some(bg) => item_view = item_view.background(bg)
         None => ()
       }
-      dropdown_items.push(item_view)
+      // Attach per-item event handler for hover/click and keyboard navigation
+      // Capture index for closure
+      let idx = i
+      dropdown_items.push(item_view.on_event(fn(ev) { self.handle_item_event(idx, ev) }))
     }
 
     // Create dropdown container - inline for now until absolute positioning is fixed
@@ -241,7 +276,25 @@ pub impl[T] @view.Component for Select[T] with render(self) {
       Some(i) => final_container = final_container.id(i)
       None => ()
     }
-    final_container.on_key(fn(key) {
+    final_container.on_event(fn(ev) { self.handle_event(ev) })
+  } else {
+    // Closed state - just the select box
+    let mut final_select_box = select_box
+      .on_event(fn(ev) { self.handle_event(ev) })
+
+    // Apply ID if provided
+    match self.id {
+      Some(i) => final_select_box = final_select_box.id(i)
+      None => ()
+    }
+    final_select_box
+  }
+}
+
+///|
+pub impl[T] @view.Component for Select[T] with handle_event(self, event) {
+  match event {
+    @events.Event::Key(key) =>
       match key {
         @ffi.KeyEvent::ArrowUp => self.move_up()
         @ffi.KeyEvent::ArrowDown =>
@@ -268,34 +321,7 @@ pub impl[T] @view.Component for Select[T] with render(self) {
           }
         _ => false
       }
-    })
-  } else {
-    // Closed state - just the select box
-    let mut final_select_box = select_box.on_key(fn(key) {
-      match key {
-        @ffi.KeyEvent::Enter
-        | @ffi.KeyEvent::Char(32)
-        | @ffi.KeyEvent::ArrowDown => { // 32 = space
-          self.is_open = true
-          true
-        }
-        _ => false
-      }
-    })
-
-    // Apply ID if provided
-    match self.id {
-      Some(i) => final_select_box = final_select_box.id(i)
-      None => ()
-    }
-    final_select_box
-  }
-}
-
-///|
-pub impl[T] @view.Component for Select[T] with handle_event(self, event) {
-  match event {
-    @events.Event::Key(key) =>
+    @events.Event::KeyMod(key, _mods) =>
       match key {
         @ffi.KeyEvent::ArrowUp => self.move_up()
         @ffi.KeyEvent::ArrowDown =>

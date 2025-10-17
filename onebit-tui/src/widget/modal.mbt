@@ -8,7 +8,6 @@ pub struct Modal {
   mut backdrop : Bool               // Show dimmed background
   close_on_escape : Bool            // Close when Escape is pressed
   mut close_on_backdrop : Bool      // Close when clicking backdrop
-  internal_focus : FocusManager // Modal's own focus manager
   mut on_close : (() -> Unit)?     // Callback when modal closes
 }
 
@@ -23,7 +22,6 @@ pub fn Modal::new(content : &@view.Component) -> Modal {
     backdrop: true,
     close_on_escape: true,
     close_on_backdrop: false,
-    internal_focus: FocusManager::new(),
     on_close: None
   }
 }
@@ -74,118 +72,67 @@ pub fn Modal::close(self : Modal) -> Unit {
 ///|
 /// Show this modal
 pub fn Modal::show(self : Modal, current_focus : Int?) -> Unit {
-  // Register focusable components within modal content
-  self.scan_and_register_focusables()
-  
   // Push to modal manager
   ModalManager::push_modal(self, current_focus)
 }
 
 ///|
-/// Scan content for focusable components and register them
-fn Modal::scan_and_register_focusables(self : Modal) -> Unit {
-  // For now, we'll rely on the content component's own focus handling
-  // In the future, we could recursively scan for focusable children
-  if self.content.is_focusable() {
-    self.internal_focus.register("modal-content", self.content)
-  }
-}
-
-///|
 /// Component implementation for Modal
 pub impl @view.Component for Modal with render(self) {
-  let views : Array[@view.View] = []
-  
-  // Create backdrop if enabled
+  // Build content stack (title + body)
+  let content_components : Array[&@view.Component] = []
+  match self.title {
+    Some(title) => content_components.push(Text::new(title))
+    None => ()
+  }
+  content_components.push(self.content)
+
+  let mut dialog = @view.View::container(content_components)
+    .border(@view.BorderStyle::Double, color=@core.Color::White)
+    .padding(1.0)
+
+  // Size
+  match self.width {
+    Some(w) => dialog = dialog.width(w.to_double())
+    None => dialog = dialog.width(50.0)
+  }
+  match self.height {
+    Some(h) => dialog = dialog.height(h.to_double())
+    None => ()
+  }
+
+  // Backdrop (full-screen) + dialog centered in an absolute overlay
+  let children : Array[@view.View] = []
   if self.backdrop {
     let mut backdrop = @view.View::empty()
       .position(@view.Position::Absolute)
-      .width(100.0)
-      .height(100.0)
-      .background(@core.Color::Black)
-    
-    // Add click handler if close_on_backdrop
+      .top(0.0)
+      .left(0.0)
+      .width_percent(100.0)
+      .height_percent(100.0)
+      .background(@core.rgba(0, 0, 0, 0.6))
     if self.close_on_backdrop {
-      backdrop = backdrop.on_click(Some(fn(_x : Int, _y : Int) {
-        self.close()
-      }))
+      backdrop = backdrop.on_click(Some(fn(_x : Int, _y : Int) { self.close() }))
     }
-    
-    views.push(backdrop)
+    children.push(backdrop)
   }
-  
-  // Build modal content
-  let content_components : Array[&@view.Component] = []
-  
-  // Add title if present
-  match self.title {
-    Some(title) => {
-      // Create a text component for the title
-      let title_component = Text::new(title)
-      content_components.push(title_component)
-    }
-    None => ()
-  }
-  
-  // Add the main content
-  content_components.push(self.content)
-  
-  // Create container with all content
-  let mut modal_with_content = @view.View::container(content_components)
+  children.push(dialog)
+
+  @view.View::container_views(children)
     .position(@view.Position::Absolute)
-    .background(@core.Color::Black)
-    .border(@view.BorderStyle::Double, color=@core.Color::White)
-    .padding(1.0)
-  
-  // Set size if specified
-  match self.width {
-    Some(w) => modal_with_content = modal_with_content.width(w.to_double())
-    None => modal_with_content = modal_with_content.width(50.0)
-  }
-  
-  match self.height {
-    Some(h) => modal_with_content = modal_with_content.height(h.to_double())
-    None => ()
-  }
-  
-  // Center the modal
-  modal_with_content = modal_with_content
+    .top(0.0)
+    .left(0.0)
+    .width_percent(100.0)
+    .height_percent(100.0)
     .align_items(@types.Align::Center)
     .justify_content(@types.Justify::Center)
-  
-  views.push(modal_with_content)
-  
-  // Return the complete modal view
-  @view.View::container_views(views)
 }
 
 ///|
-pub impl @view.Component for Modal with handle_event(self, event) {
-  match event {
-    @events.Event::Key(key) =>
-      match key {
-        @ffi.KeyEvent::Tab => {
-          // Handle Tab within modal (focus trap)
-          let _ = self.internal_focus.focus_next()
-          true  // Always consume Tab in modal
-        }
-        @ffi.KeyEvent::Escape if self.close_on_escape => {
-          // Close the modal
-          self.close()
-          true
-        }
-        _ => {
-          // Pass to modal's focused component
-          self.internal_focus.handle_navigation(event)
-        }
-      }
-    @events.Event::Mouse(_) =>
-      // Pass mouse events to content
-      self.content.handle_event(event)
-    _ =>
-      // Pass other events to content
-      self.content.handle_event(event)
-  }
+pub impl @view.Component for Modal with handle_event(_self, _event) {
+  // Let the overlay focus logic in the runtime handle Tab/Escape.
+  // Modal-level component does not intercept events; content components receive events via view handlers.
+  false
 }
 
 ///|

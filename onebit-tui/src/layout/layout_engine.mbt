@@ -40,10 +40,21 @@ fn create_yoga_node(view : @view.View) -> @yoga.Node {
     Some(@view.Size::Auto) => node.set_height_auto()
     None => ()
   }
+  // Min/max constraints (pending onebit-yoga export); no-ops for now
 
   // Apply flex properties
   match view.flex_value {
     Some(f) => node.set_flex(f.to_float())
+    None => ()
+  }
+  // Default flex-shrink to 1 (upstream parity) unless explicitly set
+  match view.flex_shrink_value {
+    Some(s) => node.set_flex_shrink(s.to_float())
+    None => node.set_flex_shrink(1.0)
+  }
+  // Flex basis
+  match view.flex_basis_value {
+    Some(b) => node.set_flex_basis(b.to_float())
     None => ()
   }
 
@@ -68,6 +79,12 @@ fn create_yoga_node(view : @view.View) -> @yoga.Node {
     None => ()
   }
 
+  // Apply align self (overrides parent's align-items for this item)
+  match view.align_self_value {
+    Some(align) => node.set_align_self(align)
+    None => ()
+  }
+
   // Apply justify content
   match view.justify_content_value {
     Some(justify) => node.set_justify_content(justify)
@@ -79,10 +96,42 @@ fn create_yoga_node(view : @view.View) -> @yoga.Node {
     Some(p) => node.set_padding_all(@types.Value::point(p.to_float()))
     None => ()
   }
+  match view.padding_top_value {
+    Some(p) => node.set_padding(@types.Edge::Top, @types.Value::point(p.to_float()))
+    None => ()
+  }
+  match view.padding_right_value {
+    Some(p) => node.set_padding(@types.Edge::Right, @types.Value::point(p.to_float()))
+    None => ()
+  }
+  match view.padding_bottom_value {
+    Some(p) => node.set_padding(@types.Edge::Bottom, @types.Value::point(p.to_float()))
+    None => ()
+  }
+  match view.padding_left_value {
+    Some(p) => node.set_padding(@types.Edge::Left, @types.Value::point(p.to_float()))
+    None => ()
+  }
 
   // Apply margin
   match view.margin_value {
     Some(m) => node.set_margin_all(@types.Value::point(m.to_float()))
+    None => ()
+  }
+  match view.margin_top_value {
+    Some(m) => node.set_margin(@types.Edge::Top, @types.Value::point(m.to_float()))
+    None => ()
+  }
+  match view.margin_right_value {
+    Some(m) => node.set_margin(@types.Edge::Right, @types.Value::point(m.to_float()))
+    None => ()
+  }
+  match view.margin_bottom_value {
+    Some(m) => node.set_margin(@types.Edge::Bottom, @types.Value::point(m.to_float()))
+    None => ()
+  }
+  match view.margin_left_value {
+    Some(m) => node.set_margin(@types.Edge::Left, @types.Value::point(m.to_float()))
     None => ()
   }
 
@@ -107,20 +156,27 @@ fn create_yoga_node(view : @view.View) -> @yoga.Node {
     None => ()
   }
 
-  // Handle text content - set intrinsic size only if not explicitly set
+  // Handle text content – emulate upstream by providing a fixed measure when
+  // no explicit width/height is given and the view is a leaf.
   match view.content {
     @view.ViewContent::Text(text) => {
-      // Only set width if not already set and no flex
-      if view.width is None && view.flex_value is None {
-        let width = text.length().to_double()
-        node.set_width_points(width.to_float())
-      }
-      // Text is always single line height unless specified
-      if view.height is None {
-        node.set_height_points(1.0)
+      if view.children.length() == 0 && view.width is None && view.height is None {
+        // Compute simple intrinsic size: max line length x number of lines
+        // Note: This is a codepoint-length approximation; TODO: FFI display width.
+        let max_w = Ref::new(1)
+        let lines = Ref::new(0)
+        text.split("\n").each(fn(line_view) {
+          let lw = line_view.length()
+          if lw > max_w.val { max_w.val = lw }
+          lines.val = lines.val + 1
+        })
+        if lines.val == 0 { lines.val = 1 }
+        node.set_measure_fixed(max_w.val.to_double().to_float(), lines.val.to_double().to_float())
+      } else {
+        node.clear_measure()
       }
     }
-    @view.ViewContent::Empty => ()
+    @view.ViewContent::Empty => node.clear_measure()
   }
   node
 }
@@ -160,26 +216,142 @@ pub fn render_with_layout(
   let abs_x = parent_x + left.to_int()
   let abs_y = parent_y + top.to_int()
 
-  // Render background if present
+  // Render background if present (under content)
   match view.bg_color {
-    Some(color) =>
-      app.draw_rect(abs_x, abs_y, width.to_int(), height.to_int(), color)
+    Some(color) => app.draw_rect(abs_x, abs_y, width.to_int(), height.to_int(), color)
     None => ()
   }
 
-  // Render border if present
+  // Calculate inner rect (for content, hit-testing, and clipping)
+  let has_border = match view.border_style {
+    Some(_) => true
+    None => false
+  }
+  let border_inset = if has_border { 1 } else { 0 }
+  let pad_left = match view.padding_left_value {
+    Some(p) => p.to_int()
+    None => {
+      match view.padding_value {
+        Some(p) => p.to_int()
+        None => 0
+      }
+    }
+  }
+  let pad_right = match view.padding_right_value {
+    Some(p) => p.to_int()
+    None => {
+      match view.padding_value {
+        Some(p) => p.to_int()
+        None => 0
+      }
+    }
+  }
+  let pad_top = match view.padding_top_value {
+    Some(p) => p.to_int()
+    None => {
+      match view.padding_value {
+        Some(p) => p.to_int()
+        None => 0
+      }
+    }
+  }
+  let pad_bottom = match view.padding_bottom_value {
+    Some(p) => p.to_int()
+    None => {
+      match view.padding_value {
+        Some(p) => p.to_int()
+        None => 0
+      }
+    }
+  }
+  let inner_x = abs_x + border_inset + pad_left
+  let inner_y = abs_y + border_inset + pad_top
+  let inner_w = (width.to_int() - 2 * border_inset - pad_left - pad_right).max(0)
+  let inner_h = (height.to_int() - 2 * border_inset - pad_top - pad_bottom).max(0)
+
+  // Render content
+  match view.content {
+    @view.ViewContent::Text(text) => {
+      let fg = match view.fg_color {
+        Some(c) => c
+        None => @core.Color::White
+      }
+      // Vertically center text within inner box
+      let center_offset = if inner_h > 1 {
+        (inner_h - 1) / 2
+      } else {
+        0
+      }
+      app.draw_text(text, inner_x, inner_y + center_offset, fg)
+
+      // Draw caret if focused and caret_col provided
+      if view.is_focused {
+        match view.caret_col {
+          Some(cidx) => {
+            let caret_x = inner_x + cidx
+            let caret_y = inner_y + center_offset
+            app.draw_text("|", caret_x, caret_y, fg)
+          }
+          None => ()
+        }
+      }
+    }
+    @view.ViewContent::Empty => ()
+  }
+
+  // Register hit region for views that can handle events or are focusable (OUTER rect)
+  let can_handle = if view.is_focusable {
+    true
+  } else {
+    match (view.event_handler, view.click_handler) {
+      (Some(_), _) => true
+      (None, Some(_)) => true
+      _ => false
+    }
+  }
+  if can_handle {
+    match view.view_id {
+      Some(id) => app.get_renderer().add_hit_region(
+        abs_x,
+        abs_y,
+        width.to_int(),
+        height.to_int(),
+        id,
+      )
+      None => ()
+    }
+  }
+
+  // Clip children if overflow is hidden/scroll (children-only; keep border/self un-clipped)
+  let use_clip = match view.overflow_y {
+    Some(@view.Overflow::Hidden) => true
+    Some(@view.Overflow::Scroll) => true
+    _ => false
+  }
+  let clip_w = if inner_w <= 0 { 1 } else { inner_w }
+  let clip_h = if inner_h <= 0 { 1 } else { inner_h }
+  if use_clip { app.get_buffer().push_scissor(inner_x, inner_y, clip_w, clip_h) }
+  for i = 0; i < view.children.length(); i = i + 1 {
+    match yoga_node.get_child(i) {
+      Some(child_yoga) =>
+        render_with_layout(app, view.children[i], child_yoga, abs_x, abs_y)
+      None => ()
+    }
+  }
+  if use_clip { app.get_buffer().pop_scissor() }
+
+  // Render border last so it stays on top of content/children
   match view.border_style {
     Some(style) => {
-      // Use focused border color if focused, otherwise normal border color
       let border_color = if view.is_focused {
         match view.focused_border_color {
           Some(c) => c
-          None => @core.Color::Cyan // Default focus color
+          None => @core.Color::Cyan
         }
       } else {
         match view.border_color {
           Some(c) => c
-          None => @core.Color::Gray // Default border color
+          None => @core.Color::Gray
         }
       }
       let title_text = match view.title_text {
@@ -204,44 +376,6 @@ pub fn render_with_layout(
       )
     }
     None => ()
-  }
-
-  // Render content
-  match view.content {
-    @view.ViewContent::Text(text) => {
-      let fg = match view.fg_color {
-        Some(c) => c
-        None => @core.Color::White
-      }
-      // Vertically center text when the view height > 1
-      let center_offset = if height.to_int() > 1 {
-        (height.to_int() - 1) / 2
-      } else {
-        0
-      }
-      app.draw_text(text, abs_x, abs_y + center_offset, fg)
-    }
-    @view.ViewContent::Empty => ()
-  }
-
-  // Clip children if overflow is hidden/scroll
-  let use_clip = match view.overflow_y {
-    Some(@view.Overflow::Hidden) => true
-    Some(@view.Overflow::Scroll) => true
-    _ => false
-  }
-  if use_clip {
-    app.get_buffer().push_scissor(abs_x, abs_y, width.to_int(), height.to_int())
-  }
-  for i = 0; i < view.children.length(); i = i + 1 {
-    match yoga_node.get_child(i) {
-      Some(child_yoga) =>
-        render_with_layout(app, view.children[i], child_yoga, abs_x, abs_y)
-      None => ()
-    }
-  }
-  if use_clip {
-    app.get_buffer().pop_scissor()
   }
 }
 

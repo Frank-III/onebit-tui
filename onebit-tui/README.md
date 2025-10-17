@@ -110,6 +110,7 @@ fn main {
         .title_align(@view.TitleAlign::Center)
       }
 
+      // Global handler returns false by default; return true to prevent default
       @runtime.run_event_loop(app, build_ui, fn(event) {
         match event {
           @ffi.InputEvent::Key(@ffi.KeyEvent::Char(43)) => { // '+'
@@ -122,7 +123,7 @@ fn main {
           }
           _ => false
         }
-      })
+      }, enable_kitty_keyboard=false)
 
       app.cleanup()
     }
@@ -226,17 +227,17 @@ let scroll = @widget.ScrollBox::new(items, visible_rows=10)
 ## Event Handling
 
 ```moonbit
-// Global event handler
+// Global event handler (return true to prevent default; false by default)
 fn on_global_event(event : @ffi.InputEvent) -> Bool {
   match event {
     Key(Escape) => false  // Exit app
     MouseDown(x, y, button) => {
       println("Click at \{x}, \{y}")
-      true
+      false
     }
     Resize(width, height) => {
       println("Terminal resized to \{width}x\{height}")
-      true
+      false
     }
     _ => false
   }
@@ -266,21 +267,27 @@ view
 
 ## Examples
 
-Check out the `src/demo/` directory for complete examples:
+Dev examples live under `examples/tui-demo/` in this repo:
 
-- **`todo_app.mbt`** - Full-featured todo list with focus management
-- **`counter.mbt`** - Simple counter with state management
-- **`interactive.mbt`** - Mouse and keyboard interaction demo
-- **`yoga_demo.mbt`** - Advanced flexbox layout examples
-- **`box_demo.mbt`** - Border styles and overflow demonstration
-- **`scroll_demo.mbt`** - Scrolling and viewport management
+- `tab_select_demo.mbt` — Horizontal tab selector
+- `select_demo.mbt` — Dropdown selection
+- `text_area_demo.mbt` — Wrapped multi-line text with scrolling
+- `scrollbox_demo.mbt` — Scrollable list of components
+- `input_demo.mbt` — Text input with caret + word navigation
 
-Run demos:
+Run any demo:
 
 ```bash
-moon build --target native
-./target/native/release/build/demo/demo.native
+cd examples/tui-demo
+moon run --target native src/scrollbox_demo.mbt   # or any of the above
 ```
+
+Tips:
+
+- Tab/Shift+Tab moves focus, arrows navigate, Home/End/PageUp/PageDown supported.
+- Mouse wheel scroll works on focused ScrollBox/TextArea.
+- TextInput supports Ctrl/Alt+Left/Right (word nav), Ctrl+W/U/K, and paste; caret is visible when focused.
+ - Optional: enable kitty keyboard for richer modifier fidelity via `enable_kitty_keyboard=true` in `run_event_loop`.
 
 ## Architecture
 

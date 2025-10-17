@@ -63,11 +63,14 @@ fn main_tab_select_demo() -> Unit {
         fn(t) { t },
         selected=selected_tab
       )
-        .with_id(2000)
         .on_change(fn(index, tab) {
           println("Tab changed to: \{tab} (index: \{index})")
         })
       
+      // Simple status line for debugging focus and key events
+      let status = Ref::new("Tab demo ready".to_string())
+      let debug_overlay_on = Ref::new(false)
+
       fn build_ui() -> @view.View {
         // Get content for selected tab
         let content_views = get_tab_content(selected_tab.val)
@@ -86,13 +89,33 @@ fn main_tab_select_demo() -> Unit {
             .spacing(0.5)
             .padding(2.0)
             .border(@view.BorderStyle::Single, color=@core.Color::White)
+            .overflow_y(@view.Overflow::Hidden)
             .height(12.0)  // Fixed height for content area
-            .width(50.0),  // Fixed width
+            .width(50.0)   // Fixed width
+            .focusable()
+            .focused_border_color(@core.Color::Cyan)
+            .on_event(fn(ev) {
+              match ev {
+                @events.Event::Key(key) => {
+                  let pk = @events.parse_key_event_simple(key)
+                  status.val = "Content key: ".to_string() + pk.name
+                  true
+                }
+                @events.Event::KeyMod(key, mods) => {
+                  let pk = @events.parse_key_event(key, mods)
+                  let mods_label = (if pk.ctrl { "Ctrl+" } else { "" }) + (if pk.alt { "Alt+" } else { "" }) + (if pk.shift { "Shift+" } else { "" }) + (if pk.meta { "Meta+" } else { "" })
+                  status.val = "Content key: ".to_string() + mods_label + pk.name
+                  true
+                }
+                _ => false
+              }
+            }),
           
           // Status bar
           @view.View::text("Tab \{selected_tab.val + 1} of \{tabs.length()} | Press arrows to navigate, 1-5 for quick select, 'q' to quit", 
                           color=@core.Color::Gray)
             .margin_top(1.0),
+          @view.View::text(status.val, color=@core.Color::Gray)
         ])
           .direction(@view.Direction::Column)
           .spacing(1.0)
@@ -104,9 +127,18 @@ fn main_tab_select_demo() -> Unit {
         match event {
           @ffi.InputEvent::Key(@ffi.KeyEvent::Char(113)) => false  // 'q' to quit
           @ffi.InputEvent::Key(@ffi.KeyEvent::Escape) => false
-          _ => true
+          @ffi.InputEvent::Key(@ffi.KeyEvent::F(12)) => {
+            debug_overlay_on.val = not(debug_overlay_on.val)
+            app.get_renderer().enable_debug_overlay(debug_overlay_on.val, 3) // bottom-right
+            true
+          }
+          @ffi.InputEvent::Key(@ffi.KeyEvent::Char(100)) => { // 'd' dumps hit grid
+            app.get_renderer().dump_hit_grid()
+            true
+          }
+          _ => false  // Allow default handling unless explicitly blocked
         }
-      })
+      }, enable_kitty_keyboard=false, debug_mouse=false)
       
       app.cleanup()
     }

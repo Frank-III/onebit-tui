@@ -46,6 +46,12 @@ pub fn Node::new_with_config(config : Config) -> Node {
 }
 
 ///|
+/// Free this node and its entire subtree
+pub fn Node::free_recursive(self : Node) -> Unit {
+  @ffi.yoga_node_free_recursive(self.handle)
+}
+
+///|
 /// Calculate layout for this node tree
 pub fn Node::calculate_layout(
   self : Node,
@@ -213,6 +219,26 @@ pub fn Node::set_flex_shrink(self : Node, shrink : Float) -> Unit {
 ///|
 pub fn Node::set_flex_basis(self : Node, basis : Float) -> Unit {
   @ffi.yoga_node_set_flex_basis(self.handle, basis)
+}
+
+///|
+pub fn Node::set_min_width(self : Node, width : Float) -> Unit {
+  @ffi.yoga_node_set_min_width(self.handle, width)
+}
+
+///|
+pub fn Node::set_min_height(self : Node, height : Float) -> Unit {
+  @ffi.yoga_node_set_min_height(self.handle, height)
+}
+
+///|
+pub fn Node::set_max_width(self : Node, width : Float) -> Unit {
+  @ffi.yoga_node_set_max_width(self.handle, width)
+}
+
+///|
+pub fn Node::set_max_height(self : Node, height : Float) -> Unit {
+  @ffi.yoga_node_set_max_height(self.handle, height)
 }
 
 ///|

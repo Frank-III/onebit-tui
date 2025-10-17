@@ -63,6 +63,12 @@ pub fn yoga_node_free(node : YogaNodeRef) -> Unit {
 }
 
 ///|
+/// Free a Yoga node and all descendants (recursive)
+pub fn yoga_node_free_recursive(node : YogaNodeRef) -> Unit {
+  yoga_node_free_recursive_native(node)
+}
+
+///|
 /// Calculate layout
 pub fn yoga_node_calculate_layout(
   node : YogaNodeRef,
@@ -193,6 +199,27 @@ pub fn yoga_node_set_flex_shrink(node : YogaNodeRef, shrink : Float) -> Unit {
 ///|
 pub fn yoga_node_set_flex_basis(node : YogaNodeRef, basis : Float) -> Unit {
   yoga_node_set_flex_basis_native(node, basis)
+}
+
+///|
+/// Set min/max dimensions
+pub fn yoga_node_set_min_width(node : YogaNodeRef, width : Float) -> Unit {
+  yoga_node_set_min_width_native(node, width)
+}
+
+///|
+pub fn yoga_node_set_min_height(node : YogaNodeRef, height : Float) -> Unit {
+  yoga_node_set_min_height_native(node, height)
+}
+
+///|
+pub fn yoga_node_set_max_width(node : YogaNodeRef, width : Float) -> Unit {
+  yoga_node_set_max_width_native(node, width)
+}
+
+///|
+pub fn yoga_node_set_max_height(node : YogaNodeRef, height : Float) -> Unit {
+  yoga_node_set_max_height_native(node, height)
 }
 
 ///|
