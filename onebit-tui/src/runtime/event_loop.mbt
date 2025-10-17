@@ -301,6 +301,41 @@ pub fn run_event_loop(
         let btn = @events.MouseButton::Left
         let ev_move = @events.Event::Mouse(@events.MouseEvent::{ x, y, button: btn, action: @events.MouseAction::Move })
         let hid = app.get_renderer().check_hit(x, y)
+        // Over/Out: if target changed, send Out to old, Over to new
+        if hid != last_over_id.val {
+          let prev = last_over_id.val
+          if prev > 0 {
+            let ev_out = @events.Event::Mouse(@events.MouseEvent::{ x, y, button: btn, action: @events.MouseAction::Out })
+            match @widget.ModalManager::get_active() {
+              Some(_) =>
+                match current_modal_view.val {
+                  Some(mv) => { let _ = dispatch_event_to_id(mv, prev, ev_out) }
+                  None => ()
+                }
+              None =>
+                match current_ui.val {
+                  Some(ui) => { let _ = dispatch_event_to_id(ui, prev, ev_out) }
+                  None => ()
+                }
+            }
+          }
+          if hid > 0 {
+            let ev_over = @events.Event::Mouse(@events.MouseEvent::{ x, y, button: btn, action: @events.MouseAction::Over })
+            match @widget.ModalManager::get_active() {
+              Some(_) =>
+                match current_modal_view.val {
+                  Some(mv) => { let _ = dispatch_event_to_id(mv, hid, ev_over) }
+                  None => ()
+                }
+              None =>
+                match current_ui.val {
+                  Some(ui) => { let _ = dispatch_event_to_id(ui, hid, ev_over) }
+                  None => ()
+                }
+            }
+          }
+          last_over_id.val = hid
+        }
         let mut handled_move = false
         if hid > 0 {
           match @widget.ModalManager::get_active() {
@@ -315,7 +350,6 @@ pub fn run_event_loop(
                 None => ()
               }
           }
-          last_over_id.val = hid
         }
         if not(handled_move) {
           match @widget.ModalManager::get_active() {

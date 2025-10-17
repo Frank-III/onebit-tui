@@ -30,6 +30,8 @@ pub(all) enum MouseAction {
   Click
   DoubleClick
   Move
+  Over
+  Out
 } derive(Eq)
 
 ///|
