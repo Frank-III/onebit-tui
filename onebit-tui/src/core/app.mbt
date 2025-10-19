@@ -85,6 +85,13 @@ pub fn App::render(self : App) -> Unit {
 }
 
 ///|
+/// Render the current frame (force full write)
+pub fn App::render_force(self : App) -> Unit {
+  self.renderer.render(force=true)
+  self.buffer = self.renderer.get_next_buffer()
+}
+
+///|
 /// Resize renderer and update cached dimensions used for layout
 pub fn App::resize(self : App, width : UInt, height : UInt) -> Unit {
   self.renderer.resize(width, height)

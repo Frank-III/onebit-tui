@@ -2,7 +2,7 @@
 /// Modal demo – focus trap, Escape close, focus restore
 pub fn main_modal_demo() -> Unit {
   match @core.App::init() {
-    None => println("Failed to initialize app")
+    None => ()
     Some(app) => {
       let status = Ref::new("No action yet".to_string())
 

@@ -3,7 +3,7 @@
 fn main_dropdown_test() -> Unit {
   let app = @core.App::init()
   match app {
-    None => println("Failed to initialize app")
+    None => ()
     Some(app) => {
       // Simple state to control dropdown
       let is_open = Ref::new(false)
@@ -11,7 +11,7 @@ fn main_dropdown_test() -> Unit {
       let options = ["Red", "Green", "Blue"]
       
       fn build_ui() -> @view.View {
-        println("Building UI - is_open: \{is_open.val}, selected: \{selected_idx.val}")
+        let _dbg = (is_open.val, selected_idx.val)
         
         let main_box = @view.View::text("Select: \{options[selected_idx.val]} ▼", 
                                         color=@core.Color::White)
@@ -21,9 +21,9 @@ fn main_dropdown_test() -> Unit {
           .on_key(fn(key) {
             match key {
               @ffi.KeyEvent::Enter | @ffi.KeyEvent::Char(32) => {
-                println("Toggle dropdown - was: \{is_open.val}")
+                let _was = is_open.val
                 is_open.val = not(is_open.val)
-                println("Toggle dropdown - now: \{is_open.val}")
+                let _now = is_open.val
                 true
               }
               @ffi.KeyEvent::ArrowUp => {
@@ -59,7 +59,7 @@ fn main_dropdown_test() -> Unit {
         
         // Build UI based on state
         if is_open.val {
-          println("Rendering with dropdown")
+          ()
           // When open, show dropdown
           let dropdown_items : Array[@view.View] = []
           for i = 0; i < options.length(); i = i + 1 {
@@ -100,7 +100,7 @@ fn main_dropdown_test() -> Unit {
             .spacing(1.0)
             .padding(2.0)
         } else {
-          println("Rendering without dropdown")
+          ()
           // When closed, just show the select box
           @view.View::container_views([
             @view.View::text("Dropdown Test", color=@core.Color::Cyan),
@@ -125,4 +125,3 @@ fn main_dropdown_test() -> Unit {
     }
   }
 }
-

@@ -10,7 +10,7 @@ pub fn run_event_loop(
   debug_mouse? : Bool = false,
 ) -> Unit {
   // Enable raw mode for input (already enabled by new())
-  let session = @ffi.TerminalSession::new(raw_mode=true, mouse=true)
+  let session = @ffi.TerminalSession::new(raw_mode=true, mouse=true, mouse_movement=false)
 
   // Mouse tracking already enabled by session
   // Optionally enable kitty keyboard for richer modifiers
@@ -45,6 +45,53 @@ pub fn run_event_loop(
 
   // Dimensions are now stored in the app and updated on resize
 
+  // Initial render to ensure hit grid and layout exist before first input
+  if needs_redraw.val {
+    app.clear(0.05, 0.05, 0.1)
+    let ui0 = build_ui()
+    current_ui.val = Some(ui0)
+    // Auto focus first focusable
+    let ids0 = collect_focusable_ids(ui0)
+    if ids0.length() > 0 {
+      clear_all_focus(ui0)
+      let first_id0 = ids0[0]
+      let _ = set_view_focused(ui0, Some(first_id0), true)
+      focused_view_id.val = Some(first_id0)
+      focused_pos.val = Some(0)
+    }
+    // Modal suppression
+    if @widget.ModalManager::is_active() {
+      clear_all_focus(ui0)
+      focused_view_id.val = None
+      focused_pos.val = None
+    }
+    // Layout and render base
+    let yoga_root0 = @layout.calculate_layout(ui0, app.width.to_double().to_float(), app.height.to_double().to_float())
+    current_layout.val = Some(yoga_root0)
+    @layout.render_with_layout(app, ui0, yoga_root0, 0, 0)
+    // Overlay
+    match @widget.ModalManager::get_active() {
+      Some(modal) => {
+        let mv0 = modal.render()
+        current_modal_view.val = Some(mv0)
+        let ids = collect_focusable_ids(mv0)
+        if ids.length() > 0 {
+          clear_all_focus(mv0)
+          let new_id = ids[0]
+          let _ = set_view_focused(mv0, Some(new_id), true)
+          modal_focused_view_id.val = Some(new_id)
+          modal_focused_pos.val = Some(0)
+        }
+        let ml0 = @layout.calculate_layout(mv0, app.width.to_double().to_float(), app.height.to_double().to_float())
+        current_modal_layout.val = Some(ml0)
+        @layout.render_with_layout(app, mv0, ml0, 0, 0)
+      }
+      None => ()
+    }
+    app.render()
+    needs_redraw.val = false
+  }
+
   while running.val {
     // Poll for input events (always try to read)
     let event = @ffi.poll_input_event()
@@ -67,7 +114,24 @@ pub fn run_event_loop(
           continue
         }
         // Prefer renderer hit grid for click targeting; fall back to layout hit-test
-        let clicked_id = app.get_renderer().check_hit(x, y)
+        // First try layout-based click dispatch for maximum reliability
+        match @widget.ModalManager::get_active() {
+          Some(_) =>
+            match (current_modal_view.val, current_modal_layout.val) {
+              (Some(mv), Some(ml)) => if dispatch_click(mv, x, y, ml) { needs_redraw.val = true; continue }
+              _ => ()
+            }
+          None =>
+            match (current_ui.val, current_layout.val) {
+              (Some(ui), Some(layout)) => if dispatch_click(ui, x, y, layout) { needs_redraw.val = true; continue }
+              _ => ()
+            }
+        }
+        // Otherwise, try hit grid with off-by-one guards
+        let mut clicked_id = app.get_renderer().check_hit(x, y)
+        if clicked_id == 0 { clicked_id = app.get_renderer().check_hit(x - 1, y - 1) }
+        if clicked_id == 0 { clicked_id = app.get_renderer().check_hit(x - 1, y) }
+        if clicked_id == 0 { clicked_id = app.get_renderer().check_hit(x, y - 1) }
         if clicked_id > 0 {
           let action = @events.MouseAction::Click
           let btn = match button {
@@ -77,26 +141,30 @@ pub fn run_event_loop(
             _ => @events.MouseButton::Left
           }
           let ev = @events.Event::Mouse(@events.MouseEvent::{ x, y, button: btn, action })
+          let mut handled = false
           match @widget.ModalManager::get_active() {
             Some(_) =>
               match current_modal_view.val {
-                Some(mv) => if dispatch_event_to_id(mv, clicked_id, ev) { needs_redraw.val = true }
+                Some(mv) => if dispatch_event_to_id(mv, clicked_id, ev) { handled = true; needs_redraw.val = true }
                 None => ()
               }
             None =>
               match current_ui.val {
-                Some(ui) => if dispatch_event_to_id(ui, clicked_id, ev) { needs_redraw.val = true }
+                Some(ui) => if dispatch_event_to_id(ui, clicked_id, ev) { handled = true; needs_redraw.val = true }
                 None => ()
               }
           }
-          continue
+          if handled { continue }
         }
         // Wheel → Arrow dispatch (hover target preferred; modal takes precedence)
         match button {
           @ffi.MouseButton::ScrollUp => {
             let mut handled_scroll = false
             let target_event = @events.Event::Key(@ffi.KeyEvent::ArrowUp)
-            let hid = app.get_renderer().check_hit(x, y)
+            let mut hid = app.get_renderer().check_hit(x, y)
+            if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y - 1) }
+            if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y) }
+            if hid == 0 { hid = app.get_renderer().check_hit(x, y - 1) }
             if hid > 0 {
               match @widget.ModalManager::get_active() {
                 Some(_) =>
@@ -150,7 +218,10 @@ pub fn run_event_loop(
           @ffi.MouseButton::ScrollDown => {
             let mut handled_scroll = false
             let target_event = @events.Event::Key(@ffi.KeyEvent::ArrowDown)
-            let hid = app.get_renderer().check_hit(x, y)
+            let mut hid = app.get_renderer().check_hit(x, y)
+            if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y - 1) }
+            if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y) }
+            if hid == 0 { hid = app.get_renderer().check_hit(x, y - 1) }
             if hid > 0 {
               match @widget.ModalManager::get_active() {
                 Some(_) =>
@@ -300,7 +371,10 @@ pub fn run_event_loop(
         // Dispatch Move to target via hit grid; fall back to layout bubble.
         let btn = @events.MouseButton::Left
         let ev_move = @events.Event::Mouse(@events.MouseEvent::{ x, y, button: btn, action: @events.MouseAction::Move })
-        let hid = app.get_renderer().check_hit(x, y)
+        let mut hid = app.get_renderer().check_hit(x, y)
+        if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y - 1) }
+        if hid == 0 { hid = app.get_renderer().check_hit(x - 1, y) }
+        if hid == 0 { hid = app.get_renderer().check_hit(x, y - 1) }
         // Over/Out: if target changed, send Out to old, Over to new
         if hid != last_over_id.val {
           let prev = last_over_id.val

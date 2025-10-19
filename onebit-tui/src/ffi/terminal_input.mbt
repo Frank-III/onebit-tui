@@ -116,6 +116,12 @@ extern "C" fn checkHitR(renderer : RendererPtr, x : UInt, y : UInt) -> UInt = "c
 ///|
 #borrow(renderer)
 extern "C" fn dumpHitGridR(renderer : RendererPtr) -> Unit = "dumpHitGrid"
+///|
+#borrow(renderer)
+extern "C" fn dumpBuffersR(renderer : RendererPtr, timestamp : Int) -> Unit = "dumpBuffers"
+///|
+#borrow(renderer)
+extern "C" fn dumpStdoutBufferR(renderer : RendererPtr, timestamp : Int) -> Unit = "dumpStdoutBuffer"
 
 ///|
 #borrow(renderer)
@@ -244,4 +250,14 @@ pub fn Renderer::enable_debug_overlay(
 ///|
 pub fn Renderer::dump_hit_grid(self : Renderer) -> Unit {
   dumpHitGridR(self.ptr)
+}
+
+///|
+pub fn Renderer::dump_buffers(self : Renderer, timestamp : Int) -> Unit {
+  dumpBuffersR(self.ptr, timestamp)
+}
+
+///|
+pub fn Renderer::dump_stdout_buffer(self : Renderer, timestamp : Int) -> Unit {
+  dumpStdoutBufferR(self.ptr, timestamp)
 }

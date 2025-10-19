@@ -63,9 +63,7 @@ fn main_tab_select_demo() -> Unit {
         fn(t) { t },
         selected=selected_tab
       )
-        .on_change(fn(index, tab) {
-          println("Tab changed to: \{tab} (index: \{index})")
-        })
+        .on_change(fn(_index, _tab) { })
       
       // Simple status line for debugging focus and key events
       let status = Ref::new("Tab demo ready".to_string())
@@ -127,15 +125,6 @@ fn main_tab_select_demo() -> Unit {
         match event {
           @ffi.InputEvent::Key(@ffi.KeyEvent::Char(113)) => false  // 'q' to quit
           @ffi.InputEvent::Key(@ffi.KeyEvent::Escape) => false
-          @ffi.InputEvent::Key(@ffi.KeyEvent::F(12)) => {
-            debug_overlay_on.val = not(debug_overlay_on.val)
-            app.get_renderer().enable_debug_overlay(debug_overlay_on.val, 3) // bottom-right
-            true
-          }
-          @ffi.InputEvent::Key(@ffi.KeyEvent::Char(100)) => { // 'd' dumps hit grid
-            app.get_renderer().dump_hit_grid()
-            true
-          }
           _ => false  // Allow default handling unless explicitly blocked
         }
       }, enable_kitty_keyboard=false, debug_mouse=false)

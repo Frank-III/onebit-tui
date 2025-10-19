@@ -1048,6 +1048,12 @@ fn parse_csi_sequence() -> InputEvent {
         param_count = param_count + 1
         current_param = 0
       }
+    } else if byte == 60 { // '<' SGR mouse indicator
+      if param_count < 10 {
+        params[param_count] = 60
+        param_count = param_count + 1
+      }
+      // Do not treat '<' as final; continue reading digits and separators
     } else if byte >= 48 && byte <= 57 { // '0'-'9'
       current_param = current_param * 10 + (byte - 48)
     } else {

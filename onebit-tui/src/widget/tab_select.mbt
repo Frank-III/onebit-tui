@@ -125,40 +125,34 @@ pub impl[T] @view.Component for TabSelect[T] with render(self) {
     return @view.View::empty()
   }
 
-  // Build tab views
+  // Build tab views (label containers for reliable hit/clip)
   let tab_views : Array[@view.View] = []
   for i = 0; i < self.tabs.length(); i = i + 1 {
     let fn_val = self.display_fn
     let tab_text = fn_val(self.tabs[i])
     let is_selected = i == self.selected_index.val
 
-    // Create tab with appropriate styling
-    let mut tab_view = if is_selected {
-      @view.View::text(" \{tab_text} ", color=self.style.active_fg)
-        .background(self.style.active_bg)
-        .padding(1.0)
-    } else {
-      let mut v = @view.View::text(
-        " \{tab_text} ",
-        color=self.style.inactive_fg,
-      ).padding(1.0)
-      match self.style.inactive_bg {
-        Some(bg) => v = v.background(bg)
-        None => ()
-      }
-      v
+    // Create label text
+    let label_text = @view.View::text(" \{tab_text} ", color=if is_selected { self.style.active_fg } else { self.style.inactive_fg })
+    // Wrap in container to ensure nonzero, padded hit area
+    let mut label = @view.View::container_views([label_text])
+      .padding(1.0)
+      .focusable()
+    match self.style.inactive_bg {
+      Some(bg) if not(is_selected) => label = label.background(bg)
+      _ => ()
     }
-    // Handle per-tab mouse/key events: click selects the tab; Up/Down/Left/Right navigate
-    // Capture index per-iteration to avoid closure capturing the loop variable by reference
+    if is_selected {
+      label = label.background(self.style.active_bg)
+    }
     let idx = i
-    tab_view = tab_view.on_event(fn(ev) { self.handle_tab_event(idx, ev) })
-    tab_views.push(tab_view)
+    label = label.on_event(fn(ev) { self.handle_tab_event(idx, ev) })
+    tab_views.push(label)
 
     // Add separator between tabs (except after last)
     if i < self.tabs.length() - 1 && self.style.separator != "" {
-      tab_views.push(
-        @view.View::text(self.style.separator, color=@core.Color::Gray),
-      )
+      // Use simple ASCII separator to avoid wide glyph issues
+      tab_views.push(@view.View::text("|", color=@core.Color::Gray))
     }
   }
 

@@ -9,7 +9,7 @@ fn scrollbox_demo_view_complex() -> @view.View {
     if i % 5 == 0 {
       // Every 5th item is a button
       items.push(
-        @widget.Button::new("Button \{i}", fn() { println("Clicked button \{i}") })
+        @widget.Button::new("Button \{i}", fn() { })
       )
     } else if i % 3 == 0 {
       // Every 3rd item is highlighted text

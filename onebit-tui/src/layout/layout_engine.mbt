@@ -285,7 +285,7 @@ pub fn render_with_layout(
   let inner_w = (width.to_int() - 2 * border_inset - pad_left - pad_right).max(0)
   let inner_h = (height.to_int() - 2 * border_inset - pad_top - pad_bottom).max(0)
 
-  // Render content
+  // Render content (do not clip self content; upstream clips children only)
   match view.content {
     @view.ViewContent::Text(text) => {
       let fg = match view.fg_color {
@@ -338,7 +338,7 @@ pub fn render_with_layout(
     }
   }
 
-  // Clip children if overflow is hidden/scroll (children-only; keep border/self un-clipped)
+  // Clip children if needed (hidden/scroll)
   let use_clip = match view.overflow_y {
     Some(@view.Overflow::Hidden) => true
     Some(@view.Overflow::Scroll) => true
@@ -347,6 +347,8 @@ pub fn render_with_layout(
   let clip_w = if inner_w <= 0 { 1 } else { inner_w }
   let clip_h = if inner_h <= 0 { 1 } else { inner_h }
   if use_clip { app.get_buffer().push_scissor(inner_x, inner_y, clip_w, clip_h) }
+
+  // Render children (clipped when use_clip)
   for i = 0; i < view.children.length(); i = i + 1 {
     match yoga_node.get_child(i) {
       Some(child_yoga) =>
